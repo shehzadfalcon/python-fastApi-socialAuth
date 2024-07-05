@@ -1,0 +1,133 @@
+import os
+
+from fastapi import HTTPException, status
+from app.database import db
+from app.services.auth_helper import AuthHelper
+from app.enums.error_messages import EErrorMessages
+from app.enums.response_messages import EResponseMessages
+from app.services.email import send_email
+from app.enums.email_subject_keys import EEmailSubjectKeys
+
+
+from app.enums.steps import Steps
+from datetime import datetime
+from app.validations.link_account import LinkAccountDto
+import time
+
+user_collection = db.get_collection("users")
+
+
+class SocialAuthService:
+
+    @staticmethod
+    async def social_login(email: str, full_name: str, provider_id: str, provider: str):
+        # Check if the user already exists
+        user = await user_collection.find_one({"email": email.lower()})
+        if not user:
+            # Create a new user if not found
+            user_data = {
+                "fullName": full_name,
+                "email": email,
+                "providers": [{"providerId": provider_id, "provider": provider}],
+                "isActive": True,  # Example default value
+            }
+            inserted_user = await user_collection.insert_one(user_data)
+            updated_user = await user_collection.find_one(
+                {"_id": inserted_user.inserted_id}
+            )
+
+            # Generating auth token
+            token_data = {
+                "sub": str(updated_user["_id"]),
+                "email": updated_user["email"],
+            }
+            token = AuthHelper.create_access_token(data=token_data)
+
+            return {"user": updated_user, "token": {token}}
+        else:
+            # Check if the social provider exists for the user
+            social_provider = next(
+                (
+                    p
+                    for p in user.get("providers", [])
+                    if p["providerId"] == provider_id and p["provider"] == provider
+                ),
+                None,
+            )
+
+            if not social_provider:
+                # Handle account linking scenario with OTP generation and email sending
+                otp = AuthHelper.generate_otp()
+                otp_expire_at = AuthHelper.generate_expiry_time()
+
+                # Update user with OTP and OTP expiry time
+                await user_collection.update_one(
+                    {"_id": user["_id"]},
+                    {"$set": {"OTP": otp, "OTPExpireAt": otp_expire_at}},
+                )
+
+                # Send email with OTP
+                context = {"fullName": user["fullName"], "otp": otp}
+                await send_email(
+                            user["email"], 
+                            EEmailSubjectKeys.ACCOUNT_LINKING_SUBJECT, 
+                            "registration.html", 
+                            context
+                        )
+                return {"nextStep": Steps.ACCOUNT_LINKING}
+
+            # Generating auth token
+            token_data = {"sub": str(user["_id"]), "email": user["email"]}
+            token = AuthHelper.create_access_token(data=token_data)
+            user["_id"] = str(user["_id"])
+            return {"user": user, "token": {token}}
+
+    @staticmethod
+    async def link_account(link_account_dto: LinkAccountDto):
+        user = await user_collection.find_one(
+            {"email": link_account_dto.email, "OTP": int(link_account_dto.otp)}
+        )
+        if not user:
+            return {
+                "statusCode": status.HTTP_404_NOT_FOUND,
+                "message": EErrorMessages.INVALID_OTP,
+            }
+
+        otp_expire_at = user["OTPExpireAt"]
+        current_time = int(time.time())
+
+        if otp_expire_at > current_time:
+            return {
+                "statusCode": status.HTTP_409_CONFLICT,
+                "message": EErrorMessages.OTP_EXPIRED,
+            }
+
+        # Update the user with the new provider
+        await user_collection.update_one(
+            {
+                "_id": user["_id"],
+                "providers.provider": {"$ne": link_account_dto.provider},
+            },
+            {
+                "$push": {
+                    "providers": {
+                        "providerId": link_account_dto.providerId,
+                        "provider": link_account_dto.provider,
+                    }
+                },
+                "$set": {"emailVerifiedAt": datetime.utcnow()},
+            },
+        )
+
+        token_data = {"sub": str(user["_id"]), "email": user["email"]}
+        token = AuthHelper.create_access_token(data=token_data)
+
+        # Fetch the updated user data
+        user = await user_collection.find_one({"_id": user["_id"]})
+        user["_id"] = str(user["_id"])
+
+        return {
+            "statusCode": status.HTTP_200_OK,
+            "message":EResponseMessages.OTP_VERIFIED,
+            "payload": {"user": user, "token": {token}},
+        }

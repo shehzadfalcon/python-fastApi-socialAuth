@@ -1,0 +1,36 @@
+{% extends "template.html" %}
+
+{% block body %}
+<div style="box-sizing: border-box; background-color:#101217; max-width: 600px; border-radius: 24px; width: 100%; margin: 30px auto; padding: 16px;">
+    <div style="padding: 0px 32px;">
+        <a target="_blank" href="#">
+            <img src="https://covertly-ai.s3.amazonaws.com/banner.png" alt="LogoBanner" width="100%" height="auto" style="display: block; margin-bottom: 16px;" />
+        </a>
+    </div>
+    <div style="padding: 32px;">
+        <h1 style="font-size: 26px; font-weight: 600; margin: 0; text-align: start; color: #FFF;">Welcome to Covertly</h1>
+
+        <h2 style="font-size: 16px; margin-bottom: 27px; font-weight: 400;">Hi <span style="font-weight: 600;">{{ full_name }}</span></h2>
+        <p style="margin-bottom: 24px; font-size: 14px; color: #FFF;">Welcome to <span style="color: #FFCC57;">Covertly</span>. Here we believe in the power of collective kindness.</p>
+        <p style="margin-bottom: 27px; font-size: 14px; color: #FFF;">Your decision to be a part of our app means that you are joining a network of individuals dedicated to making a positive impact on the lives of animals in need.</p>
+        <span>Thanks,</span>
+        <span style="display: block; font-weight: 600; color: #FFF;">Covertly</span>
+    </div>
+    <div style="box-sizing: border-box; width: 100%; text-align: center;">
+        <div style="box-sizing: border-box; max-width: 465px; margin: 0 auto; padding: 25px;">
+            <div style="box-sizing: border-box; margin: 0 0 16px; font-size: 12px; line-height: 14.4px; font-weight: 500; color: #1F1F22;">
+                <a href="#" style="box-sizing: border-box; display: inline-block;">
+                    <img src="https://covertly-ai.s3.amazonaws.com/linkedin.png" width="36" height="36" alt="" style="padding-right:12px;" />
+                </a> 
+                <a href="#" style="box-sizing: border-box; display: inline-block;">
+                    <img src="https://covertly-ai.s3.amazonaws.com/youtube.png" width="36" height="36" alt="" style="padding-right:12px;" />
+                </a>
+                <a href="#" style="box-sizing: border-box; display: inline-block;">
+                    <img src="https://covertly-ai.s3.amazonaws.com/twitter.png" width="36" height="36" alt="" />
+                </a>
+            </div>
+            <p style="box-sizing: border-box; margin: 0; font-size: 12px; text-align: center; line-height: 1.5; color: #9A9A9B; font-weight: 500; font-family: sans-serif;">&copy;2024 Covertly. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
