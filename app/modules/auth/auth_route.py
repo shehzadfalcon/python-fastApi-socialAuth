@@ -18,7 +18,7 @@ and optional payload.
 
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 
 # validation schema
 from app.schemas.register import RegisterSchema
@@ -30,7 +30,6 @@ from app.schemas.identify import IdentifyDto
 
 # utils
 from app.enums.error_messages import EErrorMessages
-from app.enums.response_messages import EResponseMessages
 from app.interfaces.response import IResponse
 from app.utils.create_response import create_response
 

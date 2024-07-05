@@ -25,7 +25,7 @@ Classes:
 
 """
 
-from fastapi import HTTPException, status
+from fastapi import status
 from app.database import db
 from app.services.auth_helper import AuthHelper
 from app.enums.error_messages import EErrorMessages

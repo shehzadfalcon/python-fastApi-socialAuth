@@ -1,5 +1,4 @@
 from pydantic import BaseModel, EmailStr, Field, validator
-from app.models.users import User
 import re
 
 

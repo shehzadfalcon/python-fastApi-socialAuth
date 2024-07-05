@@ -57,6 +57,10 @@ fastapi-sso = "==0.15.0"
 cryptography = "==42.0.8"
 aiosmtplib = "==3.0.1"
 
+
+[tool.poetry.dev-dependencies]
+flake8 = "^6.0.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
@@ -64,10 +68,11 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.black]
-line-length = 79
+line-length = 179
 target-version = ['py37']  # Adjust to match your Python version requirements
 include = '\.pyi?$'  # Include .py and .pyi files
 
 [tool.poetry.scripts]
 runserver = "python3 -B run.py"
 format = "black app/"
+style= "flake8 app/"

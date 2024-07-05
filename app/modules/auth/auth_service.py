@@ -17,7 +17,6 @@ Functions:
 
 from fastapi import status
 from app.database import db
-from app.models.users import User
 from datetime import datetime, timezone
 from app.services.email import send_email
 from app.enums.error_messages import EErrorMessages

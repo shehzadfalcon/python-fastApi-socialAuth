@@ -21,6 +21,8 @@ class ResetPasswordSchema(BaseModel):
             v,
         ):
             raise ValueError(
-                "Password must contain at least one number, one lowercase letter, one uppercase letter, and one special character"
+                "Password must contain at least one number,"
+                "one lowercase letter, one uppercase letter,"
+                "and one special character"
             )
         return v
