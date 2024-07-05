@@ -1,5 +1,5 @@
 from typing import Optional
-from app.models.users import User
+from app.modules.user.user_model import User
 from pydantic import BaseModel
 
 

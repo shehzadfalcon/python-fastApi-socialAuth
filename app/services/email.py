@@ -27,9 +27,7 @@ def render_template(template_name: str, context: dict) -> str:
     return template.render(context)
 
 
-async def send_email(
-    to_email: str, subject: str, template_name: str, context: dict
-):
+async def send_email(to_email: str, subject: str, template_name: str, context: dict):
     try:
         html_content = render_template(template_name, context)
 
@@ -64,6 +62,4 @@ def send_email_background(
     template_name: str,
     context: dict,
 ):
-    background_tasks.add_task(
-        send_email, to_email, subject, template_name, context
-    )
+    background_tasks.add_task(send_email, to_email, subject, template_name, context)

@@ -1,10 +1,9 @@
 from pydantic import BaseModel, EmailStr, Field, validator
 import re
-from typing import Optional
 
 
-class ResetPasswordSchema(BaseModel):
-    otp: Optional[str] = None
+class RegisterSchema(BaseModel):
+    fullName: str
     email: EmailStr
     password: str = Field(
         ...,
@@ -20,9 +19,5 @@ class ResetPasswordSchema(BaseModel):
             r'^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[-!$%^&*()_+|~=`{}\[\]:;"\'<>,.?\\/@#])',
             v,
         ):
-            raise ValueError(
-                "Password must contain at least one number,"
-                "one lowercase letter, one uppercase letter,"
-                "and one special character"
-            )
+            raise ValueError("Password must contain at least one number, one lowercase letter, one uppercase letter, and one special character")
         return v

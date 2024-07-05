@@ -34,7 +34,7 @@ from app.services.email import send_email
 from app.enums.email_subject_keys import EEmailSubjectKeys
 from app.enums.steps import Steps
 from datetime import datetime
-from app.schemas.link_account import LinkAccountDto
+from app.modules.auth.schemas.link_account import LinkAccountDto
 import time
 
 # Initialize user collection from the database
@@ -51,9 +51,7 @@ class SocialAuthService:
     """
 
     @staticmethod
-    async def social_login(
-        email: str, full_name: str, provider_id: str, provider: str
-    ):
+    async def social_login(email: str, full_name: str, provider_id: str, provider: str):
         """
         Handles social login authentication.
 
@@ -73,15 +71,11 @@ class SocialAuthService:
             user_data = {
                 "fullName": full_name,
                 "email": email,
-                "providers": [
-                    {"providerId": provider_id, "provider": provider}
-                ],
+                "providers": [{"providerId": provider_id, "provider": provider}],
                 "isActive": True,  # Example default value
             }
             inserted_user = await user_collection.insert_one(user_data)
-            updated_user = await user_collection.find_one(
-                {"_id": inserted_user.inserted_id}
-            )
+            updated_user = await user_collection.find_one({"_id": inserted_user.inserted_id})
 
             # Generating auth token
             token_data = {
@@ -95,12 +89,7 @@ class SocialAuthService:
         else:
             # Check if the social provider exists for the user
             social_provider = next(
-                (
-                    p
-                    for p in user.get("providers", [])
-                    if p["providerId"] == provider_id
-                    and p["provider"] == provider
-                ),
+                (p for p in user.get("providers", []) if p["providerId"] == provider_id and p["provider"] == provider),
                 None,
             )
 
@@ -143,9 +132,7 @@ class SocialAuthService:
         Returns:
         - dict: Returns a dictionary containing user and token data upon successful account linking.
         """
-        user = await user_collection.find_one(
-            {"email": link_account_dto.email, "OTP": int(link_account_dto.otp)}
-        )
+        user = await user_collection.find_one({"email": link_account_dto.email, "OTP": int(link_account_dto.otp)})
 
         if not user:
             return {

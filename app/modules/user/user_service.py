@@ -13,7 +13,7 @@ Imports:
 """
 
 from fastapi import HTTPException, status, Depends
-from app.models.users import User
+from app.modules.user.user_model import User
 from app.database import db
 from bson import ObjectId
 from app.services.auth_helper import AuthHelper
@@ -101,14 +101,10 @@ class UserService:
         Raises:
         - HTTPException: Raises 404 HTTPException if user is not found.
         """
-        update_result = await user_collection.update_one(
-            {"_id": ObjectId(user_id)}, {"$set": user.dict(by_alias=True)}
-        )
+        update_result = await user_collection.update_one({"_id": ObjectId(user_id)}, {"$set": user.dict(by_alias=True)})
         if update_result.modified_count == 0:
             raise HTTPException(status_code=404, detail="User not found")
-        updated_user = await user_collection.find_one(
-            {"_id": ObjectId(user_id)}
-        )
+        updated_user = await user_collection.find_one({"_id": ObjectId(user_id)})
         return {
             "statusCode": status.HTTP_200_OK,
             "message": None,

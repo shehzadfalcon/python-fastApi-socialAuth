@@ -43,26 +43,20 @@ class AuthHelper:
         return AuthHelper.pwd_context.hash(password)
 
     @staticmethod
-    def create_access_token(
-        data, expires_delta: timedelta | None = None
-    ) -> str:
+    def create_access_token(data, expires_delta: timedelta | None = None) -> str:
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.now(timezone.utc) + expires_delta
         else:
             expire = datetime.now(timezone.utc) + timedelta(minutes=15)
         to_encode.update({"exp": expire})
-        encoded_jwt = jwt.encode(
-            to_encode, AuthHelper.SECRET_KEY, algorithm=AuthHelper.ALGORITHM
-        )
+        encoded_jwt = jwt.encode(to_encode, AuthHelper.SECRET_KEY, algorithm=AuthHelper.ALGORITHM)
         return encoded_jwt
 
     @staticmethod
     async def authenticate_user(email: str, password: str) -> Optional[dict]:
         user = await user_collection.find_one({"email": email})
-        if not user or not AuthHelper.verify_password(
-            password, user.get("password")
-        ):
+        if not user or not AuthHelper.verify_password(password, user.get("password")):
             return
         return user
 
@@ -76,9 +70,7 @@ class AuthHelper:
             headers={"WWW-Authenticate": "Bearer"},
         )
         try:
-            payload = jwt.decode(
-                token, AuthHelper.SECRET_KEY, algorithms=[AuthHelper.ALGORITHM]
-            )
+            payload = jwt.decode(token, AuthHelper.SECRET_KEY, algorithms=[AuthHelper.ALGORITHM])
             username: str = payload.get("sub")
             if username is None:
                 raise credentials_exception

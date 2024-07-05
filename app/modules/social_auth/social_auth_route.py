@@ -35,7 +35,7 @@ from fastapi_sso.sso.google import GoogleSSO
 from fastapi import APIRouter, HTTPException, status, Request
 from app.modules.social_auth.social_auth_service import SocialAuthService
 from app.enums.error_messages import EErrorMessages
-from app.schemas.link_account import LinkAccountDto
+from app.modules.auth.schemas.link_account import LinkAccountDto
 from app.enums.steps import Steps
 from app.utils.create_response import create_response
 

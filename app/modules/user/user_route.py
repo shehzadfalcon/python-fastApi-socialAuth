@@ -16,7 +16,7 @@ Imports:
 """
 
 from fastapi import APIRouter, Depends
-from app.models.users import User
+from app.modules.user.user_model import User
 from app.modules.user.user_service import UserService
 
 router = APIRouter()

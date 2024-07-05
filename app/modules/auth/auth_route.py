@@ -21,12 +21,12 @@ and optional payload.
 from fastapi import APIRouter, HTTPException
 
 # validation schema
-from app.schemas.register import RegisterSchema
-from app.schemas.login import LoginSchema
-from app.schemas.verify_email import VerifyEmailSchema
-from app.schemas.forgot_password import ForgotPasswordSchema
-from app.schemas.reset_password import ResetPasswordSchema
-from app.schemas.identify import IdentifyDto
+from app.modules.auth.schemas.register import RegisterSchema
+from app.modules.auth.schemas.login import LoginSchema
+from app.modules.auth.schemas.verify_email import VerifyEmailSchema
+from app.modules.auth.schemas.forgot_password import ForgotPasswordSchema
+from app.modules.auth.schemas.reset_password import ResetPasswordSchema
+from app.modules.auth.schemas.identify import IdentifyDto
 
 # utils
 from app.enums.error_messages import EErrorMessages
@@ -75,9 +75,7 @@ async def login(login_dto: LoginSchema):
     - **login_dto**: LoginSchema - Contains login data (email and password).
     """
     try:
-        return await AuthService.login_user(
-            login_dto.email, login_dto.password
-        )
+        return await AuthService.login_user(login_dto.email, login_dto.password)
     except HTTPException as e:
         return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
 
@@ -133,8 +131,6 @@ async def reset_password(reset_password: ResetPasswordSchema):
     - **reset_password**: ResetPasswordSchema - Contains email, OTP, and new password.
     """
     try:
-        return await AuthService.handle_reset_password(
-            reset_password.email, reset_password.otp, reset_password.password
-        )
+        return await AuthService.handle_reset_password(reset_password.email, reset_password.otp, reset_password.password)
     except HTTPException as e:
         return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)

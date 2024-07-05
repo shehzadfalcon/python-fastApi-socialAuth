@@ -13,6 +13,7 @@ class EResponseMessages(Enum):
     USER_STATUS_UPDATED = "User status updated"
     IMAGE_UPDATED = "Image updated"
     USERS_FETCHED = "Users fetched"
+    PASSWORD_RESET = "Password reset successfully"
 
     # Password messages
     PASSWORD_UPDATED = "Password updated"

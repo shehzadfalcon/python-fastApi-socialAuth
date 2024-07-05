@@ -56,7 +56,7 @@ bcrypt = "==4.0.1"
 fastapi-sso = "==0.15.0"
 cryptography = "==42.0.8"
 aiosmtplib = "==3.0.1"
-
+python-jose = "3.3.0"
 
 [tool.poetry.dev-dependencies]
 flake8 = "^6.0.0"

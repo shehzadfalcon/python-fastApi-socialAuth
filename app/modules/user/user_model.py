@@ -22,18 +22,12 @@ class User(BaseModel):
     avatar: Optional[str] = None
     email: EmailStr
     password: str = Field("", min_length=6)
-    email_verified_at: Optional[datetime] = Field(
-        None, alias="emailVerifiedAt"
-    )
+    email_verified_at: Optional[datetime] = Field(None, alias="emailVerifiedAt")
     otp_expire_at: Optional[int] = Field(None, alias="OTPExpireAt")
     otp: Optional[int] = Field(None, alias="OTP")
     is_active: bool = Field(True, alias="isActive")
     providers: Optional[List[Provider]] = None
     role: EUserRole = Field(EUserRole.USER, alias="role")
     deleted_at: Optional[datetime] = Field(None, alias="deletedAt")
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), alias="createdAt"
-    )
-    updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt"
-    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
