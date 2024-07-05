@@ -1,5 +1,8 @@
-class EResponseMessages:
-    # User messages
+from enum import Enum
+
+
+class EResponseMessages(Enum):
+    # User messagess
     USER_CREATED = "User created successfully"
     USER_LOGIN = "User logged in successfully"
     USER_IDENTIFIED = "User identified"

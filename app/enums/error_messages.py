@@ -1,4 +1,7 @@
-class EErrorMessages:
+from enum import Enum
+
+
+class EErrorMessages(Enum):
     ACCOUNT_LINKING = "Account linking required"
 
     # User errors

@@ -1,36 +1,71 @@
-# app/routes/user.py
+"""
+User Routes Module.
 
-from fastapi import APIRouter, HTTPException, Depends, status
-from app.services.auth_helper import AuthHelper
+This module defines routes for user-related operations.
 
+Imports:
+- APIRouter: FastAPI router for defining API routes.
+- HTTPException: FastAPI exception handling for HTTP errors.
+- Depends: FastAPI dependency injection for handling dependencies.
+- status: HTTP status codes.
+- AuthHelper: Helper class for authentication operations.
+- User: User model class.
+- db: Database connection instance.
+- ObjectId: MongoDB ObjectId type for document identification.
+- UserService: Service class for user-related operations.
+"""
+
+from fastapi import APIRouter, Depends
 from app.models.users import User
-from app.database import db
-from bson import ObjectId
+from app.modules.user.user_service import UserService
 
 router = APIRouter()
 
-user_collection = db.get_collection("users")
-
 
 @router.get("/profile", response_model=User)
-async def get_profile(current_user: User = Depends(AuthHelper.get_authenticated_user)):
+async def get_profile(current_user: User = Depends(UserService.get_profile)):
+    """
+    Retrieves the profile of the authenticated user.
+
+    Args:
+    - current_user (User): Current authenticated user obtained from UserService.
+
+    Returns:
+    - User: Returns the current user's profile.
+    """
     return current_user
 
 
 @router.get("/{user_id}", response_model=User)
 async def get_user(user_id: str):
-    user = await user_collection.find_one({"_id": ObjectId(user_id)})
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return User(**user)
+    """
+    Retrieves a user by their ObjectId.
+
+    Args:
+    - user_id (str): ObjectId of the user to retrieve.
+
+    Returns:
+    - User: Returns the user object if found.
+
+    Raises:
+    - HTTPException: Raises 404 HTTPException if user is not found.
+    """
+    return await UserService.get_user_by_id(user_id)
 
 
 @router.put("/{user_id}", response_model=User)
 async def update_user(user_id: str, user: User):
-    update_result = await user_collection.update_one(
-        {"_id": ObjectId(user_id)}, {"$set": user.dict(by_alias=True)}
-    )
-    if update_result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-    updated_user = await user_collection.find_one({"_id": ObjectId(user_id)})
-    return User(**updated_user)
+    """
+    Updates a user's profile information.
+
+    Args:
+    - user_id (str): ObjectId of the user to update.
+    - user (User): Updated user data.
+
+    Returns:
+    - User: Returns the updated user object.
+
+    Raises:
+    - HTTPException: Raises 404 HTTPException if user is not found.
+    """
+    return await UserService.update_user(user_id, user)

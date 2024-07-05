@@ -22,7 +22,9 @@ class User(BaseModel):
     avatar: Optional[str] = None
     email: EmailStr
     password: str = Field("", min_length=6)
-    email_verified_at: Optional[datetime] = Field(None, alias="emailVerifiedAt")
+    email_verified_at: Optional[datetime] = Field(
+        None, alias="emailVerifiedAt"
+    )
     otp_expire_at: Optional[int] = Field(None, alias="OTPExpireAt")
     otp: Optional[int] = Field(None, alias="OTP")
     is_active: bool = Field(True, alias="isActive")

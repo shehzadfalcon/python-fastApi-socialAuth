@@ -4,7 +4,7 @@ from aiosmtplib import send
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks,HTTPException
+from fastapi import BackgroundTasks, HTTPException
 from app.enums.error_messages import EErrorMessages
 
 load_dotenv()
@@ -17,15 +17,20 @@ EMAIL_FROM = os.getenv("EMAIL_FROM")
 
 # Initialize Jinja2 environment
 template_env = Environment(
-    loader=FileSystemLoader(os.path.join(os.getcwd(), 'app/templates')),
-    autoescape=select_autoescape(['html', 'xml'])
+    loader=FileSystemLoader(os.path.join(os.getcwd(), "app/templates")),
+    autoescape=select_autoescape(["html", "xml"]),
 )
+
+
 def render_template(template_name: str, context: dict) -> str:
     template = template_env.get_template(template_name)
     return template.render(context)
 
-async def send_email(to_email: str, subject: str, template_name: str, context: dict):
-    try: 
+
+async def send_email(
+    to_email: str, subject: str, template_name: str, context: dict
+):
+    try:
         html_content = render_template(template_name, context)
 
         message = MIMEMultipart()
@@ -41,9 +46,9 @@ async def send_email(to_email: str, subject: str, template_name: str, context: d
             port=EMAIL_PORT,
             username=EMAIL_ACCOUNT,
             password=EMAIL_PASSWORD,
-            start_tls=False
+            start_tls=False,
         )
-        
+
     except HTTPException as e:
         return {
             "statusCode": e.status_code,
@@ -51,5 +56,14 @@ async def send_email(to_email: str, subject: str, template_name: str, context: d
             "payload": None,
         }
 
-def send_email_background(background_tasks: BackgroundTasks, to_email: str, subject: str, template_name: str, context: dict):
-    background_tasks.add_task(send_email, to_email, subject, template_name, context)
+
+def send_email_background(
+    background_tasks: BackgroundTasks,
+    to_email: str,
+    subject: str,
+    template_name: str,
+    context: dict,
+):
+    background_tasks.add_task(
+        send_email, to_email, subject, template_name, context
+    )

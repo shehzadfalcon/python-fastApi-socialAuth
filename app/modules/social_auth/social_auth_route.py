@@ -1,19 +1,46 @@
+"""
+Authentication and Social Login Router.
+
+This module defines routes for authentication via Google OAuth and social login callbacks.
+
+Imports:
+- RedirectResponse: FastAPI response class for redirections.
+- GoogleSSO: Google SSO integration for OAuth.
+- APIRouter: FastAPI router for defining API routes.
+- HTTPException: Exception handling for HTTP errors.
+- status: HTTP status codes.
+- Request: FastAPI request object.
+- SocialAuthService: Service handling social authentication operations.
+- EErrorMessages: Enum containing error messages.
+- Fernet: Encryption module for token handling.
+- LinkAccountDto: Data transfer object for linking accounts.
+- Steps: Enum containing workflow steps.
+
+Variables:
+- CLIENT_ID: Google OAuth client ID retrieved from environment variables.
+- CLIENT_SECRET: Google OAuth client secret retrieved from environment variables.
+- REDIRECT_URI: Google OAuth callback URL retrieved from environment variables.
+- sso: GoogleSSO instance for handling OAuth authentication.
+
+Routes:
+- /google: Initiates Google OAuth login process.
+- /google/callback: Handles Google OAuth callback for user verification and redirection.
+- /link-accounts: Handles linking of user accounts from different providers.
+
+"""
+
 import os
 from fastapi.responses import RedirectResponse
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi import APIRouter, HTTPException, status, Request
 from app.modules.social_auth.social_auth_service import SocialAuthService
-
-
 from app.enums.error_messages import EErrorMessages
 from cryptography.fernet import Fernet
-from app.validations.link_account import LinkAccountDto
+from app.schemas.link_account import LinkAccountDto
 from app.enums.steps import Steps
+from app.utils.create_response import create_response
 
 router = APIRouter()
-# fernet_key = os.getenv('FERNET_SECRET_KEY').encode()
-# # key = Fernet.generate_key()
-# fernet = Fernet(fernet_key)
 
 # Retrieve OAuth credentials from environment variables
 CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -31,56 +58,78 @@ sso = GoogleSSO(
 
 @router.get("/google")
 async def auth_login():
-    """Initiate Google login process"""
+    """
+    Initiates Google OAuth login process.
+
+    Returns:
+    - RedirectResponse: Redirects user to Google login page.
+    """
     with sso:
         return await sso.get_login_redirect()
 
 
 @router.get("/google/callback")
 async def auth_callback(request: Request):
- try:
-    with sso:
-        user = await sso.verify_and_process(request)
-    if not user:
-        RedirectResponse(url=f"{os.getenv('FRONTED_URL')}/login")
-    profile = user.dict()
-    payload= await SocialAuthService.social_login(
-        profile["email"], profile["display_name"], profile["id"], profile["provider"]
-    )
+    """
+    Handles Google OAuth callback for user verification and redirection.
 
-    if payload and "token" in payload and "user" in payload:
-        token = payload["token"]
-        user_data = str(payload["user"])
-        redirect_url = f"{os.getenv('FRONTED_URL')}/login/google?token={token}&user={user_data}"
-        return RedirectResponse(url=redirect_url)
-    
-    elif payload.get("nextStep") == Steps.ACCOUNT_LINKING:
-        provider_id = profile["id"]
-        provider = profile["provider"]
-        encoded_email = profile["email"]
-        redirect_url = f"{os.getenv('FRONTED_URL')}/link-account?otp_token={encoded_email}&providerId={provider_id}&provider={provider}"
-        return RedirectResponse(url=redirect_url)
-    else:
-        return {
-            "statusCode":status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
- except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+    Args:
+    - request (Request): FastAPI request object containing user information.
+
+    Returns:
+    - RedirectResponse: Redirects user to appropriate frontend URL based on authentication result.
+    - dict: Returns error response in case of HTTPException.
+    """
+    try:
+        with sso:
+            user = await sso.verify_and_process(request)
+
+        if not user:
+            RedirectResponse(url=f"{os.getenv('FRONTEND_URL')}/login")
+
+        profile = user.dict()
+        payload = await SocialAuthService.social_login(
+            profile["email"],
+            profile["display_name"],
+            profile["id"],
+            profile["provider"],
+        )
+
+        if payload and "token" in payload and "user" in payload:
+            token = payload["token"]
+            user_data = str(payload["user"])
+            redirect_url = f"{os.getenv('FRONTEND_URL')}/login/google?token={token}&user={user_data}"
+            return RedirectResponse(url=redirect_url)
+
+        elif payload.get("nextStep") == Steps.ACCOUNT_LINKING:
+            provider_id = profile["id"]
+            provider = profile["provider"]
+            encoded_email = profile["email"]
+            redirect_url = f"{os.getenv('FRONTEND_URL')}/link-account?otp_token={encoded_email}&providerId={provider_id}&provider={provider}"
+            return RedirectResponse(url=redirect_url)
+        else:
+            create_response(
+                status.HTTP_500_INTERNAL_SERVER_ERROR,
+                EErrorMessages.SYSTEM_ERROR,
+            )
+
+    except HTTPException as e:
+        create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+
 
 @router.post("/link-accounts", response_model=dict)
 async def link_account(link_account_dto: LinkAccountDto):
+    """
+    Handles linking of user accounts from different providers.
+
+    Args:
+    - link_account_dto (LinkAccountDto): Data transfer object containing account linking information.
+
+    Returns:
+    - dict: Returns success or error response based on linking operation.
+    """
     try:
         return await SocialAuthService.link_account(link_account_dto)
 
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)

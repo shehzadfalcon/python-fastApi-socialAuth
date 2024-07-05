@@ -1,4 +1,29 @@
-import os
+"""
+Social Authentication Service.
+
+This module provides methods for social authentication and account linking.
+
+Imports:
+- HTTPException: FastAPI exception handling for HTTP errors.
+- status: HTTP status codes.
+- db: Database connection instance.
+- AuthHelper: Helper class for authentication operations.
+- EErrorMessages: Enum containing error messages.
+- EResponseMessages: Enum containing response messages.
+- send_email: Function for sending emails.
+- EEmailSubjectKeys: Enum containing email subject keys.
+- Steps: Enum containing workflow steps.
+- datetime: Module for date and time handling.
+- LinkAccountDto: Data transfer object for linking accounts.
+- time: Module for time-related operations.
+
+Variables:
+- user_collection: Collection instance for 'users' in the database.
+
+Classes:
+- SocialAuthService: Service class for social authentication operations.
+
+"""
 
 from fastapi import HTTPException, status
 from app.database import db
@@ -7,28 +32,50 @@ from app.enums.error_messages import EErrorMessages
 from app.enums.response_messages import EResponseMessages
 from app.services.email import send_email
 from app.enums.email_subject_keys import EEmailSubjectKeys
-
-
 from app.enums.steps import Steps
 from datetime import datetime
-from app.validations.link_account import LinkAccountDto
+from app.schemas.link_account import LinkAccountDto
 import time
 
+# Initialize user collection from the database
 user_collection = db.get_collection("users")
 
 
 class SocialAuthService:
+    """
+    Service class for social authentication operations.
+
+    Methods:
+    - social_login: Handles social login authentication.
+    - link_account: Handles linking of user accounts from different providers.
+    """
 
     @staticmethod
-    async def social_login(email: str, full_name: str, provider_id: str, provider: str):
-        # Check if the user already exists
+    async def social_login(
+        email: str, full_name: str, provider_id: str, provider: str
+    ):
+        """
+        Handles social login authentication.
+
+        Args:
+        - email (str): Email address of the user.
+        - full_name (str): Full name of the user.
+        - provider_id (str): ID of the social provider.
+        - provider (str): Name of the social provider.
+
+        Returns:
+        - dict: Returns a dictionary containing user and token data upon successful login or account linking initiation.
+        """
         user = await user_collection.find_one({"email": email.lower()})
+
         if not user:
             # Create a new user if not found
             user_data = {
                 "fullName": full_name,
                 "email": email,
-                "providers": [{"providerId": provider_id, "provider": provider}],
+                "providers": [
+                    {"providerId": provider_id, "provider": provider}
+                ],
                 "isActive": True,  # Example default value
             }
             inserted_user = await user_collection.insert_one(user_data)
@@ -43,14 +90,16 @@ class SocialAuthService:
             }
             token = AuthHelper.create_access_token(data=token_data)
 
-            return {"user": updated_user, "token": {token}}
+            return {"user": updated_user, "token": token}
+
         else:
             # Check if the social provider exists for the user
             social_provider = next(
                 (
                     p
                     for p in user.get("providers", [])
-                    if p["providerId"] == provider_id and p["provider"] == provider
+                    if p["providerId"] == provider_id
+                    and p["provider"] == provider
                 ),
                 None,
             )
@@ -69,24 +118,35 @@ class SocialAuthService:
                 # Send email with OTP
                 context = {"fullName": user["fullName"], "otp": otp}
                 await send_email(
-                            user["email"], 
-                            EEmailSubjectKeys.ACCOUNT_LINKING_SUBJECT, 
-                            "registration.html", 
-                            context
-                        )
+                    user["email"],
+                    EEmailSubjectKeys.ACCOUNT_LINKING_SUBJECT,
+                    "registration.html",
+                    context,
+                )
+
                 return {"nextStep": Steps.ACCOUNT_LINKING}
 
             # Generating auth token
             token_data = {"sub": str(user["_id"]), "email": user["email"]}
             token = AuthHelper.create_access_token(data=token_data)
-            user["_id"] = str(user["_id"])
-            return {"user": user, "token": {token}}
+
+            return {"user": user, "token": token}
 
     @staticmethod
     async def link_account(link_account_dto: LinkAccountDto):
+        """
+        Handles linking of user accounts from different providers.
+
+        Args:
+        - link_account_dto (LinkAccountDto): Data transfer object containing account linking information.
+
+        Returns:
+        - dict: Returns a dictionary containing user and token data upon successful account linking.
+        """
         user = await user_collection.find_one(
             {"email": link_account_dto.email, "OTP": int(link_account_dto.otp)}
         )
+
         if not user:
             return {
                 "statusCode": status.HTTP_404_NOT_FOUND,
@@ -128,6 +188,6 @@ class SocialAuthService:
 
         return {
             "statusCode": status.HTTP_200_OK,
-            "message":EResponseMessages.OTP_VERIFIED,
-            "payload": {"user": user, "token": {token}},
+            "message": EResponseMessages.OTP_VERIFIED,
+            "payload": {"user": user, "token": token},
         }

@@ -44,7 +44,9 @@ class AuthHelper:
         return AuthHelper.pwd_context.hash(password)
 
     @staticmethod
-    def create_access_token(data, expires_delta: timedelta | None = None) -> str:
+    def create_access_token(
+        data, expires_delta: timedelta | None = None
+    ) -> str:
         to_encode = data.copy()
         if expires_delta:
             expire = datetime.now(timezone.utc) + expires_delta
@@ -59,7 +61,9 @@ class AuthHelper:
     @staticmethod
     async def authenticate_user(email: str, password: str) -> Optional[dict]:
         user = await user_collection.find_one({"email": email})
-        if not user or not AuthHelper.verify_password(password, user.get("password")):
+        if not user or not AuthHelper.verify_password(
+            password, user.get("password")
+        ):
             return
         return user
 

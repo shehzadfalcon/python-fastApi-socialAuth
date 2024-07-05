@@ -1,379 +1,141 @@
-# app/routes/auth.py
+"""
+Routes for authentication-related operations.
 
-from fastapi import APIRouter, HTTPException, Depends, status
-from app.database import db
-from app.models.users import User
-from datetime import datetime, timezone
+These routes handle user identification, registration, login, email verification,
+password management (reset, forgot, resend OTP), and associated error handling.
+
+Endpoints:
+- /identify: Identify user by email.
+- /register: Register a new user.
+- /login: Log in a user.
+- /verify-email: Verify user's email using OTP.
+- /forgot-password: Handle forgot password process.
+- /resend-otp: Resend OTP to user's email.
+- /reset-password: Reset user's password using email or OTP.
+
+Each endpoint returns an IResponse model, which includes statusCode, message,
+and optional payload.
+
+"""
+
+from fastapi import APIRouter, HTTPException, status
 
 # validation schema
-from app.validations.register import RegisterSchema
-from app.validations.login import LoginSchema
-from app.validations.verify_email import VerifyEmailSchema
-from app.validations.forgot_password import ForgotPasswordSchema
-from app.validations.reset_password import ResetPasswordSchema
-from app.validations.identify import IdentifyDto
-from app.services.email import send_email
+from app.schemas.register import RegisterSchema
+from app.schemas.login import LoginSchema
+from app.schemas.verify_email import VerifyEmailSchema
+from app.schemas.forgot_password import ForgotPasswordSchema
+from app.schemas.reset_password import ResetPasswordSchema
+from app.schemas.identify import IdentifyDto
 
-
+# utils
 from app.enums.error_messages import EErrorMessages
 from app.enums.response_messages import EResponseMessages
-from app.enums.email_subject_keys import EEmailSubjectKeys
-
-
-from app.enums.steps import Steps
-
-# from app.interfaces.login import ILogin
 from app.interfaces.response import IResponse
+from app.utils.create_response import create_response
 
 
-import time
-from app.services.auth_helper import AuthHelper
-from bson import ObjectId
+# auth service
+from app.modules.auth.auth_service import AuthService
 
-user_collection = db.get_collection("users")
 router = APIRouter()
 
 
 @router.post("/identify", response_model=IResponse)
 async def identify(identify_dto: IdentifyDto):
+    """
+    Identify the user by email.
+
+    - **identify_dto**: IdentifyDto - Contains the user's email.
+    """
     try:
-        email = str(identify_dto.email)
-        user = await user_collection.find_one({"email": email.lower()})
-        if not user:
-            return {
-                "statusCode": status.HTTP_200_OK,
-                "payload": {"nextStep": Steps.USER_REGISTER},
-            }
-
-        if user and not user.get("emailVerifiedAt"):
-            otp = AuthHelper.generate_otp()
-            otp_expire_at = AuthHelper.generate_expiry_time()
-            context = {"fullName": user["fullName"], "otp": otp}
-            await send_email(
-                user["email"], 
-                EEmailSubjectKeys.REGISTER_EMAIL_SUBJECT, 
-                "registration.html", 
-                context
-            )
-            await user_collection.update_one(
-                {"_id": ObjectId(user["_id"])},
-                {"$set": {"OTP": otp, "OTPExpireAt": otp_expire_at}},
-            )
-            return {
-                "statusCode": status.HTTP_200_OK,
-                "payload": {"nextStep": Steps.VERIFY_EMAIL},
-            }
-
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "payload": {"nextStep": Steps.SET_PASSWORD},
-        }
+        return await AuthService.identify_user(identify_dto.email)
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
 
 
 @router.post("/register", response_model=IResponse)
 async def register(form_data: RegisterSchema):
+    """
+    Register a new user.
+
+    - **form_data**: RegisterSchema - Contains registration data (e.g., email, password).
+    """
     try:
         user_dict = form_data.dict()
-        find_user = await user_collection.find_one({"email": user_dict.get("email")})
-        if find_user:
-            return {
-                "statusCode": status.HTTP_409_CONFLICT,
-                "message": EErrorMessages.USER_ALREADY_EXISTS,
-            }
-       
-        otp = AuthHelper.generate_otp()
-        otp_expire_at = AuthHelper.generate_expiry_time()
-        user_dict["OTP"]= otp
-        user_dict["OTPExpireAt"]= otp_expire_at
-        user_dict["password"] = AuthHelper.get_password_hash(user_dict.get("password"))
-
-        
-        result = await user_collection.insert_one(user_dict)
-        user=await user_collection.find_one({"_id": result.inserted_id})
-
-        context = {"fullName": user["fullName"], "otp": otp}
-        await send_email(
-            user["email"], 
-            EEmailSubjectKeys.REGISTER_EMAIL_SUBJECT, 
-            "registration.html", 
-            context
-        )
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": EResponseMessages.USER_CREATED,
-        }
+        return await AuthService.register_user(user_dict)
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
 
 
 @router.post("/login", response_model=IResponse)
 async def login(login_dto: LoginSchema):
+    """
+    Log in a user.
+
+    - **login_dto**: LoginSchema - Contains login data (email and password).
+    """
     try:
-        # Check if a user with the provided email exists
-        user = await user_collection.find_one({"email": login_dto.email.lower()})
-
-        if not user:
-            return {
-                "statusCode": status.HTTP_404_NOT_FOUND,
-                "message": EErrorMessages.USER_NOT_EXISTS,
-            }
-
-        # Check if the user is verified via OTP
-        if not user.get("emailVerifiedAt"):
-            otp = AuthHelper.generate_otp()
-            otp_expire_at = AuthHelper.generate_expiry_time()
-            context = {"fullName": user["fullName"], "otp": otp}
-            await send_email(
-                user["email"], 
-                EEmailSubjectKeys.REGISTER_EMAIL_SUBJECT, 
-                "registration.html", 
-                context
-            )
-            await user_collection.update_one(
-                {"_id": user["_id"]},
-                {"$set": {"OTP": otp, "OTPExpireAt": otp_expire_at}},
-            )
-
-            return {
-                "statusCode": status.HTTP_406_NOT_ACCEPTABLE,
-                "message": EErrorMessages.USER_NOT_VERIFIED,
-            }
-
-        # Check Password
-        is_correct = await AuthHelper.authenticate_user(
-            login_dto.email, user["password"]
+        return await AuthService.login_user(
+            login_dto.email, login_dto.password
         )
-        if not is_correct:
-            return {
-                "statusCode": status.HTTP_409_CONFLICT,
-                "message": EErrorMessages.INVALID_PASSWORD,
-            }
-
-        # Generating auth token
-        token_data = {"sub": str(user["_id"]), "email": user["email"]}
-        token = AuthHelper.create_access_token(data=token_data)
-
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": EResponseMessages.USER_LOGIN,
-            "payload": {"user": user, "token": {token}},
-        }
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
 
 
 @router.post("/verify-email", response_model=IResponse)
 async def verify_email(verify_email_dto: VerifyEmailSchema):
+    """
+    Verify a user's email using OTP.
+
+    - **verify_email_dto**: VerifyEmailSchema - Contains email, OTP, and verification status.
+    """
     try:
-        OTP = int(verify_email_dto.otp)
-        user = await user_collection.find_one(
-            {
-                "$and": [
-                    {"OTP": OTP},
-                    {"email": verify_email_dto.email.lower()},
-                ]
-            }
+        return await AuthService.verify_user_email(
+            verify_email_dto.email,
+            verify_email_dto.otp,
+            verify_email_dto.isVerifyEmail,
         )
-
-        if not user:
-            return {
-                "statusCode": status.HTTP_404_NOT_FOUND,
-                "message": EErrorMessages.INVALID_OTP,
-            }
-
-        # Compare with current time in seconds
-
-        otp_expire_at = user["OTPExpireAt"]
-        current_time = int(time.time())
-        if otp_expire_at > current_time:
-            return {
-                "statusCode": status.HTTP_409_CONFLICT,
-                "message": EErrorMessages.OTP_EXPIRED,
-            }
-
-        token_data = {"sub": str(user["_id"]), "email": user["email"]}
-        token = AuthHelper.create_access_token(data=token_data)
-
-        await user_collection.update_one(
-            {"_id": user["_id"]},
-            {"$set": {"emailVerifiedAt": datetime.now(timezone.utc)}},
-        )
-
-        if verify_email_dto.isVerifyEmail:
-              context = {"fullName": user["fullName"]}
-              await send_email(
-                    user["email"], 
-                    EEmailSubjectKeys.WELCOME_SUBJECT, 
-                    "welcome.html",
-                    context
-                )
-
-        if not user["password"]:
-            return {
-                "statusCode": status.HTTP_200_OK,
-                "payload": {"nextStep": Steps.SETUP_PASSWORD},
-            }
-
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "payload": {"user": user, "token": {token}},
-        }
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
 
 
 @router.post("/forgot-password", response_model=IResponse)
 async def forgot_password(forgot_password: ForgotPasswordSchema):
+    """
+    Handle forgot password process.
+
+    - **forgot_password**: ForgotPasswordSchema - Contains the user's email.
+    """
     try:
-        user = await user_collection.find_one(
-            {"email": forgot_password.email.lower()},
-            {"_id": 1, "fullName": 1, "emailVerifiedAt": 1},
-        )
-
-        if not user:
-            return {
-                "statusCode": status.HTTP_404_NOT_FOUND,
-                "message": EErrorMessages.USER_NOT_EXISTS,
-            }
-
-        if not user.get("emailVerifiedAt"):
-            return {
-                "statusCode": status.HTTP_409_CONFLICT,
-                "message": EErrorMessages.USER_NOT_VERIFIED,
-            }
-
-        OTP = AuthHelper.generate_otp()
-        OTPExpireAt = AuthHelper.generate_expiry_time()
-        context = {"fullName": user["fullName"], "otp": OTP}
-        await send_email(
-                    user["email"], 
-                    EEmailSubjectKeys.FORGOT_PASSWORD_EMAIL_SUBJECT, 
-                    "forgot_password.html", 
-                    context
-                )
-        await user_collection.update_one(
-            {"_id": user["_id"]}, {"$set": {"OTP": OTP, "OTPExpireAt": OTPExpireAt}}
-        )
-
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": EResponseMessages.PASSWORD_RESET_EMAIL,
-        }
+        return await AuthService.handle_forgot_password(forgot_password.email)
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
 
 
 @router.post("/resend-otp", response_model=IResponse)
 async def resend_otp(resend_otp: ForgotPasswordSchema):
+    """
+    Resend OTP to the user's email.
+
+    - **resend_otp**: ForgotPasswordSchema - Contains the user's email.
+    """
     try:
-        user = await user_collection.find_one(
-            {"email": resend_otp.email.lower()},
-            {"_id": 1, "fullName": 1, "emailVerifiedAt": 1},
-        )
-
-        if not user:
-            return {
-                "statusCode": status.HTTP_404_NOT_FOUND,
-                "message": EErrorMessages.USER_NOT_EXISTS,
-            }
-
-        OTP = AuthHelper.generate_otp()
-        OTPExpireAt = AuthHelper.generate_expiry_time()
-        context = {"fullName": user["fullName"], "otp": OTP}
-        await send_email(
-                    user["email"], 
-                    EEmailSubjectKeys.RESEND_OTP_EMAIL_SUBJECT, 
-                    "forgot_password.html", 
-                    context
-                )
-        await user_collection.update_one(
-            {"_id": user["_id"]}, {"$set": {"OTP": OTP, "OTPExpireAt": OTPExpireAt}}
-        )
-
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": EResponseMessages.OTP_RESEND,
-        }
+        return await AuthService.handle_resend_otp(resend_otp.email)
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
 
 
 @router.post("/reset-password", response_model=IResponse)
 async def reset_password(reset_password: ResetPasswordSchema):
+    """
+    Reset the user's password using email or OTP.
+
+    - **reset_password**: ResetPasswordSchema - Contains email, OTP, and new password.
+    """
     try:
-
-        user = None
-
-        if reset_password.otp:
-            user = await user_collection.find_one(
-                {"OTP": int(reset_password.otp)},
-            )
-
-        if reset_password.email and not user:
-            user = await user_collection.find_one(
-                {"email": reset_password.email.lower()},
-            )
-
-        if not user:
-            return {
-                "statusCode": status.HTTP_404_NOT_FOUND,
-                "message": EErrorMessages.INVALID_OTP,
-            }
-
-        otp_expire_at = user["OTPExpireAt"]
-        current_time = int(time.time())
-
-        if otp_expire_at > current_time:
-            return {
-                "statusCode": status.HTTP_409_CONFLICT,
-                "message": EErrorMessages.OTP_EXPIRED,
-            }
-
-        hashed_password = AuthHelper.get_password_hash(reset_password.password)
-
-        await user_collection.update_one(
-            {"_id": ObjectId(user["_id"])}, {"$set": {"password": hashed_password}}
+        return await AuthService.handle_reset_password(
+            reset_password.email, reset_password.otp, reset_password.password
         )
-        context = {"fullName": user["fullName"]}
-        await send_email(
-                    user["email"], 
-                    EEmailSubjectKeys.PASSWORD_RESET_CONFIRMATION_EMAIL_SUBJECT, 
-                    "password_reset_confirmation.html", 
-                    context
-                )
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": EResponseMessages.PASSWORD_UPDATED,
-        }
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
-            "payload": None,
-        }
+        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
