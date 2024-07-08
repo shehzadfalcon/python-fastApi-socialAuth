@@ -169,7 +169,7 @@ class AuthService:
         user = await user_collection.find_one(
             {
                 "$and": [
-                    {"OTP": otp},
+                    {"OTP": int(otp)},
                     {"email": email.lower()},
                 ]
             }
@@ -291,7 +291,7 @@ class AuthService:
         Returns:
         - dict: Response dictionary with statusCode, message, and payload fields.
         """
-        user = await user_collection.find_one({"email": email.lower(), "OTP": otp})
+        user = await user_collection.find_one({"email": email.lower(), "OTP": int(otp)})
 
         if not user:
             return create_response(status.HTTP_404_NOT_FOUND, EErrorMessages.INVALID_OTP)
