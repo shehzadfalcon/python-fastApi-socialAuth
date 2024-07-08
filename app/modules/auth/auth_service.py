@@ -140,7 +140,7 @@ class AuthService:
                 EErrorMessages.USER_NOT_VERIFIED,
             )
 
-        is_correct = await AuthHelper.authenticate_user(email, user["password"])
+        is_correct = await AuthHelper.authenticate_user(email, password)
         if not is_correct:
             return create_response(status.HTTP_409_CONFLICT, EErrorMessages.INVALID_PASSWORD)
 
