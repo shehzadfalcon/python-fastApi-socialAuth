@@ -24,7 +24,7 @@ app = FastAPI()
 async def validation_exception_handler(request, exc):
     error_messages = ""
     for error in exc.errors():
-        field_name = error.get("loc")[1]  # Get the field name from the error location
+        field_name = error.get("loc")[0]  # Get the field name from the error location
         if error.get("type") == "value_error":
             error_messages += f"{field_name.capitalize()} {error.get('msg')}. "
         elif error.get("type") == "string_too_short":
@@ -42,7 +42,7 @@ async def validation_exception_handler(request, exc):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Adjust this as needed for security
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -55,29 +55,39 @@ def custom_openapi():
         version="1.0.0",
         description="This is a sample FastAPI project with Swagger documentation.",
         routes=app.routes,
+        openapi_version="3.1.0" 
     )
+    openapi_schema["components"]["securitySchemes"] = {
+        "bearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+        }
+    }
+    openapi_schema["security"] = [{"bearerAuth": []}]
+    
     return openapi_schema
 
 
 # Serve Swagger UI
-@app.get("/docs", include_in_schema=False)
+@app.get("/api/v1/docs", include_in_schema=False)
 async def get_documentation():
-    return get_swagger_ui_html(openapi_url="/openapi.json", title="API Documentation")
+    return get_swagger_ui_html(openapi_url="/api/v1/openapi.json", title="API Documentation")
 
 
-@app.get("/openapi.json", include_in_schema=False)
+@app.get("/api/v1/openapi.json", include_in_schema=False)
 async def get_open_api_endpoint():
     return JSONResponse(content=custom_openapi())
 
 
 # Include ReDoc if needed
-@app.get("/redoc", include_in_schema=False)
+@app.get("/api/v1/redoc", include_in_schema=False)
 async def redoc_html():
     return get_redoc_html(openapi_url="/openapi.json", title="API Documentation")
 
 
 # Include routers
-app.include_router(user_router, prefix="/api/v1/users", tags=["users"])
+app.include_router(user_router, prefix="/api/v1/user", tags=["users"])
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(social_auth_router, prefix="/api/v1/social-auth", tags=["social-auth"])
 

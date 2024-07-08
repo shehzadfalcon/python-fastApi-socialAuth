@@ -146,7 +146,7 @@ class AuthService:
 
         token_data = {"sub": str(user["_id"]), "email": user["email"]}
         token = AuthHelper.create_access_token(data=token_data)
-
+        user["_id"]=str(user["_id"])
         return create_response(
             status.HTTP_200_OK,
             EResponseMessages.USER_LOGIN,
@@ -202,7 +202,7 @@ class AuthService:
 
         if not user["password"]:
             return create_response(status.HTTP_200_OK, None, {"nextStep": Steps.SETUP_PASSWORD})
-
+        user["_id"]=str(user["_id"])
         return create_response(status.HTTP_200_OK, None, {"user": user, "token": token})
 
     @staticmethod

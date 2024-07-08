@@ -9,7 +9,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 import random
 from app.database import db
-
+from bson import ObjectId
 import os
 
 user_collection = db.get_collection("users")
@@ -48,7 +48,7 @@ class AuthHelper:
         if expires_delta:
             expire = datetime.now(timezone.utc) + expires_delta
         else:
-            expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+            expire = datetime.now(timezone.utc) + timedelta(minutes=1440)
         to_encode.update({"exp": expire})
         encoded_jwt = jwt.encode(to_encode, AuthHelper.SECRET_KEY, algorithm=AuthHelper.ALGORITHM)
         return encoded_jwt
@@ -71,12 +71,13 @@ class AuthHelper:
         )
         try:
             payload = jwt.decode(token, AuthHelper.SECRET_KEY, algorithms=[AuthHelper.ALGORITHM])
-            username: str = payload.get("sub")
-            if username is None:
+            _id: str = payload.get("sub")
+            if _id is None:
                 raise credentials_exception
         except JWTError:
             raise credentials_exception
-        user = await user_collection.find_one({"email": username})
+        user = await user_collection.find_one({"_id": ObjectId(_id)})
         if user is None:
             raise credentials_exception
-        return user
+        user["_id"]=str(user["_id"])
+        return dict(user)

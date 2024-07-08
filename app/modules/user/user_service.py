@@ -17,6 +17,13 @@ from app.modules.user.user_model import User
 from app.database import db
 from bson import ObjectId
 from app.services.auth_helper import AuthHelper
+from app.utils.create_response import create_response
+from app.enums.error_messages import EErrorMessages
+from app.enums.response_messages import EResponseMessages
+
+from app.modules.user.schemas.update_password import UpdatePasswordSchema
+from app.modules.user.schemas.update_profile import UpdateProfileSchema
+
 
 # Initialize user collection from the database
 user_collection = db.get_collection("users")
@@ -32,34 +39,7 @@ class UserService:
     - update_user: Updates a user's profile information.
     """
 
-    @staticmethod
-    async def get_profile(
-        current_user: User = Depends(AuthHelper.get_authenticated_user),
-    ):
-        """
-        Retrieves the profile of the authenticated user.
-
-        Args:
-        - current_user (User): Current authenticated user obtained from AuthHelper.
-
-        Returns:
-        - dict: Returns a dictionary with 'user' and 'token' keys.
-          'user' contains the current user's profile as a dictionary.
-          'token' contains the authentication token as a string.
-        """
-        token_data = {
-            "sub": str(current_user["_id"]),
-            "email": current_user["email"],
-        }
-        token = AuthHelper.create_access_token(data=token_data)
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": None,
-            "payload": {
-                "user": dict(current_user),
-                "token": token,
-            },
-        }
+   
 
     @staticmethod
     async def get_user_by_id(user_id: str):
@@ -78,16 +58,13 @@ class UserService:
         user = await user_collection.find_one({"_id": ObjectId(user_id)})
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": None,
-            "payload": {
-                "user": dict(user),
-            },
-        }
+        user["_id"]=str(user["_id"])
+        user["password"]=None
+
+        return create_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED,{"user":user})
 
     @staticmethod
-    async def update_user(user_id: str, user: User):
+    async def update_user(user_id: str, user: UpdateProfileSchema):
         """
         Updates a user's profile information.
 
@@ -105,10 +82,34 @@ class UserService:
         if update_result.modified_count == 0:
             raise HTTPException(status_code=404, detail="User not found")
         updated_user = await user_collection.find_one({"_id": ObjectId(user_id)})
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": None,
-            "payload": {
-                "user": dict(updated_user),
-            },
-        }
+        updated_user["_id"]=str(updated_user["_id"])
+        return create_response(status.HTTP_200_OK, EResponseMessages.PROFILE_UPDATED,{"user":updated_user})
+
+    
+
+    @staticmethod
+    async def update_pass(current_user:User, updatePasswordSchema:UpdatePasswordSchema):
+        """
+        Updates a user's password information.
+
+        Args:
+        - user (User): Updated user pass data.
+
+        Returns:
+        - User: Returns the updated user object.
+
+        Raises:
+        - HTTPException: Raises 404 HTTPException if user is not found.
+        """
+        print("user_dict----->",current_user)
+
+        is_correct = await AuthHelper.authenticate_user(current_user['email'], updatePasswordSchema.oldPassword)
+        if not is_correct:
+            return create_response(status.HTTP_409_CONFLICT, EErrorMessages.INVALID_OLD_PASSWORD)
+        user_dict = {"password":AuthHelper.get_password_hash(updatePasswordSchema.password)}
+        update_result = await user_collection.update_one({"_id": ObjectId(current_user['_id'])}, {"$set": user_dict})
+        if update_result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        updated_user = await user_collection.find_one({"_id": ObjectId(current_user['_id'])})
+        updated_user["_id"]=str(updated_user["_id"])
+        return create_response(status.HTTP_200_OK, EResponseMessages.PROFILE_UPDATED,{"user":updated_user})

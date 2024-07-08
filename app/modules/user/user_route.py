@@ -15,15 +15,22 @@ Imports:
 - UserService: Service class for user-related operations.
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends,status
 from app.modules.user.user_model import User
 from app.modules.user.user_service import UserService
+from app.services.auth_helper import AuthHelper
+from app.utils.create_response import create_response
+from app.enums.response_messages import EResponseMessages
+from app.interfaces.response import IResponse
+from app.modules.user.schemas.update_profile import UpdateProfileSchema
+from app.modules.user.schemas.update_password import UpdatePasswordSchema
+
 
 router = APIRouter()
 
 
-@router.get("/profile", response_model=User)
-async def get_profile(current_user: User = Depends(UserService.get_profile)):
+@router.get("/", response_model=IResponse)
+async def get_profile(user = Depends(AuthHelper.get_authenticated_user)):
     """
     Retrieves the profile of the authenticated user.
 
@@ -33,11 +40,12 @@ async def get_profile(current_user: User = Depends(UserService.get_profile)):
     Returns:
     - User: Returns the current user's profile.
     """
-    return current_user
+    return create_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED,{"user":user})
+    
 
 
-@router.get("/{user_id}", response_model=User)
-async def get_user(user_id: str):
+@router.get("/{user_id}", response_model=IResponse)
+async def get_user(user_id: str,current_user=Depends(AuthHelper.get_authenticated_user)):
     """
     Retrieves a user by their ObjectId.
 
@@ -50,11 +58,11 @@ async def get_user(user_id: str):
     Raises:
     - HTTPException: Raises 404 HTTPException if user is not found.
     """
-    return await UserService.get_user_by_id(user_id)
+    return  await UserService.get_user_by_id(user_id)
 
 
-@router.put("/{user_id}", response_model=User)
-async def update_user(user_id: str, user: User):
+@router.put("/", response_model=IResponse)
+async def update_user(form_data: UpdateProfileSchema, current_user=Depends(AuthHelper.get_authenticated_user)):
     """
     Updates a user's profile information.
 
@@ -68,4 +76,21 @@ async def update_user(user_id: str, user: User):
     Raises:
     - HTTPException: Raises 404 HTTPException if user is not found.
     """
-    return await UserService.update_user(user_id, user)
+    return await UserService.update_user(current_user._id, form_data)
+
+@router.put("/password", response_model=IResponse)
+async def update_user(form_data: UpdatePasswordSchema, current_user=Depends(AuthHelper.get_authenticated_user)):
+    """
+    Updates a user's password information.
+
+    Args:
+    - user (User): Updated user pass data.
+
+    Returns:
+    - User: Returns the updated user object.
+
+    Raises:
+    - HTTPException: Raises 404 HTTPException if user is not found.
+    """
+    return await UserService.update_pass(current_user, form_data)
+    
