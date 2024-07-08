@@ -1,7 +1,9 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, Field, validator
 import re
+
+
 class UpdatePasswordSchema(BaseModel):
-    oldPassword: str 
+    oldPassword: str
     password: str = Field(
         ...,
         min_length=8,

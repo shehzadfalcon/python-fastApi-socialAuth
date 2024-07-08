@@ -15,22 +15,30 @@ Imports:
 - UserService: Service class for user-related operations.
 """
 
-from fastapi import APIRouter, Depends,status
-from app.modules.user.user_model import User
-from app.modules.user.user_service import UserService
-from app.services.auth_helper import AuthHelper
-from app.utils.create_response import create_response
-from app.enums.response_messages import EResponseMessages
-from app.interfaces.response import IResponse
-from app.modules.user.schemas.update_profile import UpdateProfileSchema
-from app.modules.user.schemas.update_password import UpdatePasswordSchema
+from fastapi import APIRouter, HTTPException, status, Request
+from modules.user.user_service import UserService
 
+#utils
+from utils.format_response import format_response
+
+#enums
+from enums.response_messages import EResponseMessages
+from enums.error_messages import EErrorMessages
+from interfaces.response import IResponse
+
+# schemas
+from modules.user.schemas.update_profile import UpdateProfileSchema
+from modules.user.schemas.update_password import UpdatePasswordSchema
+
+# Decorator
+from decorators.user import UserDecorator
 
 router = APIRouter()
 
 
 @router.get("/", response_model=IResponse)
-async def get_profile(user = Depends(AuthHelper.get_authenticated_user)):
+@UserDecorator
+async def get_profile(request: Request):
     """
     Retrieves the profile of the authenticated user.
 
@@ -40,14 +48,18 @@ async def get_profile(user = Depends(AuthHelper.get_authenticated_user)):
     Returns:
     - User: Returns the current user's profile.
     """
-    return create_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED,{"user":user})
-    
+    try:
+        user = request.state.user
+        return format_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED.value, {"user": UserService.formatUser(user)})
+    except HTTPException as e:
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.get("/{user_id}", response_model=IResponse)
-async def get_user(user_id: str,current_user=Depends(AuthHelper.get_authenticated_user)):
+@UserDecorator
+async def get_user(request: Request, user_id: str):
     """
-    Retrieves a user by their ObjectId.
+    Retrieves a user by their ObjectId.s
 
     Args:
     - user_id (str): ObjectId of the user to retrieve.
@@ -58,11 +70,16 @@ async def get_user(user_id: str,current_user=Depends(AuthHelper.get_authenticate
     Raises:
     - HTTPException: Raises 404 HTTPException if user is not found.
     """
-    return  await UserService.get_user_by_id(user_id)
+
+    try:
+        return await UserService.get_user_by_id(user_id)
+    except HTTPException as e:
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.put("/", response_model=IResponse)
-async def update_user(form_data: UpdateProfileSchema, current_user=Depends(AuthHelper.get_authenticated_user)):
+@UserDecorator
+async def update_user(request: Request, form_data: UpdateProfileSchema):
     """
     Updates a user's profile information.
 
@@ -76,10 +93,17 @@ async def update_user(form_data: UpdateProfileSchema, current_user=Depends(AuthH
     Raises:
     - HTTPException: Raises 404 HTTPException if user is not found.
     """
-    return await UserService.update_user(current_user._id, form_data)
+    try:
+        current_user = request.state.user
+        return await UserService.update_user(current_user["_id"], form_data)
+    except HTTPException as e:
+        print("Error--->", e)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+
 
 @router.put("/password", response_model=IResponse)
-async def update_user(form_data: UpdatePasswordSchema, current_user=Depends(AuthHelper.get_authenticated_user)):
+@UserDecorator
+async def update_password(request: Request, form_data: UpdatePasswordSchema):
     """
     Updates a user's password information.
 
@@ -92,5 +116,9 @@ async def update_user(form_data: UpdatePasswordSchema, current_user=Depends(Auth
     Raises:
     - HTTPException: Raises 404 HTTPException if user is not found.
     """
-    return await UserService.update_pass(current_user, form_data)
-    
+    try:
+        current_user = request.state.user
+        return await UserService.update_password(current_user, form_data)
+
+    except HTTPException as e:
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)

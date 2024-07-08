@@ -26,16 +26,17 @@ Classes:
 """
 
 from fastapi import status
-from app.database import db
-from app.services.auth_helper import AuthHelper
-from app.enums.error_messages import EErrorMessages
-from app.enums.response_messages import EResponseMessages
-from app.services.email import send_email
-from app.enums.email_subject_keys import EEmailSubjectKeys
-from app.enums.steps import Steps
+from database import db
+from services.auth_helper import AuthHelper
+from enums.error_messages import EErrorMessages
+from enums.response_messages import EResponseMessages
+from services.email import send_email
+from enums.email_subject_keys import EEmailSubjectKeys
+from enums.steps import Steps
 from datetime import datetime
-from app.modules.auth.schemas.link_account import LinkAccountDto
+from modules.auth.schemas.link_account import LinkAccountDto
 import time
+from modules.user.user_service import UserService
 
 # Initialize user collection from the database
 user_collection = db.get_collection("users")
@@ -84,7 +85,7 @@ class SocialAuthService:
             }
             token = AuthHelper.create_access_token(data=token_data)
 
-            return {"user": updated_user, "token": token}
+            return {"user": UserService.formatUser(updated_user), "token": token}
 
         else:
             # Check if the social provider exists for the user
@@ -113,13 +114,13 @@ class SocialAuthService:
                     context,
                 )
 
-                return {"nextStep": Steps.ACCOUNT_LINKING}
+                return {"nextStep": Steps.ACCOUNT_LINKING.value}
 
             # Generating auth token
             token_data = {"sub": str(user["_id"]), "email": user["email"]}
             token = AuthHelper.create_access_token(data=token_data)
 
-            return {"user": user, "token": token}
+            return {"user": UserService.formatUser(user), "token": token}
 
     @staticmethod
     async def link_account(link_account_dto: LinkAccountDto):
@@ -137,7 +138,7 @@ class SocialAuthService:
         if not user:
             return {
                 "statusCode": status.HTTP_404_NOT_FOUND,
-                "message": EErrorMessages.INVALID_OTP,
+                "message": EErrorMessages.INVALID_OTP.value,
             }
 
         otp_expire_at = user["OTPExpireAt"]
@@ -146,7 +147,7 @@ class SocialAuthService:
         if otp_expire_at > current_time:
             return {
                 "statusCode": status.HTTP_409_CONFLICT,
-                "message": EErrorMessages.OTP_EXPIRED,
+                "message": EErrorMessages.OTP_EXPIRED.value,
             }
 
         # Update the user with the new provider
@@ -175,6 +176,6 @@ class SocialAuthService:
 
         return {
             "statusCode": status.HTTP_200_OK,
-            "message": EResponseMessages.OTP_VERIFIED,
-            "payload": {"user": user, "token": token},
+            "message": EResponseMessages.OTP_VERIFIED.value,
+            "payload": {"user": UserService.formatUser(user), "token": token},
         }

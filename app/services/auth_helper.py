@@ -3,14 +3,13 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import  jwt
 from passlib.context import CryptContext
-import random
-from app.database import db
-from bson import ObjectId
+from database import db
+
 import os
+import random
 
 user_collection = db.get_collection("users")
 
@@ -60,24 +59,3 @@ class AuthHelper:
             return
         return user
 
-    @staticmethod
-    async def get_authenticated_user(
-        token: str = Depends(oauth2_scheme),
-    ) -> Optional[dict]:
-        credentials_exception = HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-        try:
-            payload = jwt.decode(token, AuthHelper.SECRET_KEY, algorithms=[AuthHelper.ALGORITHM])
-            _id: str = payload.get("sub")
-            if _id is None:
-                raise credentials_exception
-        except JWTError:
-            raise credentials_exception
-        user = await user_collection.find_one({"_id": ObjectId(_id)})
-        if user is None:
-            raise credentials_exception
-        user["_id"]=str(user["_id"])
-        return dict(user)

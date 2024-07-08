@@ -3,7 +3,7 @@
 from typing import Generic, Optional, TypeVar, Union
 from pydantic import BaseModel
 from starlette.status import HTTP_200_OK
-from app.interfaces.login import ILogin
+from interfaces.login import ILogin
 
 
 T = TypeVar("T")

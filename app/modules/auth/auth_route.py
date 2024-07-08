@@ -21,21 +21,21 @@ and optional payload.
 from fastapi import APIRouter, HTTPException
 
 # validation schema
-from app.modules.auth.schemas.register import RegisterSchema
-from app.modules.auth.schemas.login import LoginSchema
-from app.modules.auth.schemas.verify_email import VerifyEmailSchema
-from app.modules.auth.schemas.forgot_password import ForgotPasswordSchema
-from app.modules.auth.schemas.reset_password import ResetPasswordSchema
-from app.modules.auth.schemas.identify import IdentifyDto
+from modules.auth.schemas.register import RegisterSchema
+from modules.auth.schemas.login import LoginSchema
+from modules.auth.schemas.verify_email import VerifyEmailSchema
+from modules.auth.schemas.forgot_password import ForgotPasswordSchema
+from modules.auth.schemas.reset_password import ResetPasswordSchema
+from modules.auth.schemas.identify import IdentifyDto
 
 # utils
-from app.enums.error_messages import EErrorMessages
-from app.interfaces.response import IResponse
-from app.utils.create_response import create_response
+from enums.error_messages import EErrorMessages
+from interfaces.response import IResponse
+from utils.format_response import format_response
 
 
 # auth service
-from app.modules.auth.auth_service import AuthService
+from .auth_service import AuthService
 
 router = APIRouter()
 
@@ -50,7 +50,7 @@ async def identify(identify_dto: IdentifyDto):
     try:
         return await AuthService.identify_user(identify_dto.email)
     except HTTPException as e:
-        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.post("/register", response_model=IResponse)
@@ -64,7 +64,7 @@ async def register(form_data: RegisterSchema):
         user_dict = form_data.dict()
         return await AuthService.register_user(user_dict)
     except HTTPException as e:
-        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.post("/login", response_model=IResponse)
@@ -77,7 +77,7 @@ async def login(login_dto: LoginSchema):
     try:
         return await AuthService.login_user(login_dto.email, login_dto.password)
     except HTTPException as e:
-        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.post("/verify-email", response_model=IResponse)
@@ -94,7 +94,7 @@ async def verify_email(verify_email_dto: VerifyEmailSchema):
             verify_email_dto.isVerifyEmail,
         )
     except HTTPException as e:
-        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.post("/forgot-password", response_model=IResponse)
@@ -107,7 +107,7 @@ async def forgot_password(forgot_password: ForgotPasswordSchema):
     try:
         return await AuthService.handle_forgot_password(forgot_password.email)
     except HTTPException as e:
-        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.post("/resend-otp", response_model=IResponse)
@@ -120,7 +120,7 @@ async def resend_otp(resend_otp: ForgotPasswordSchema):
     try:
         return await AuthService.handle_resend_otp(resend_otp.email)
     except HTTPException as e:
-        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.post("/reset-password", response_model=IResponse)
@@ -131,6 +131,6 @@ async def reset_password(reset_password: ResetPasswordSchema):
     - **reset_password**: ResetPasswordSchema - Contains email, OTP, and new password.
     """
     try:
-        return await AuthService.handle_reset_password(reset_password.email, reset_password.otp, reset_password.password)
+        return await AuthService.handle_reset_password( reset_password.otp, reset_password.password)
     except HTTPException as e:
-        return create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)

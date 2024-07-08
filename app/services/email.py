@@ -5,7 +5,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, HTTPException
-from app.enums.error_messages import EErrorMessages
+from enums.error_messages import EErrorMessages
 
 load_dotenv()
 
@@ -14,7 +14,6 @@ EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
 EMAIL_ACCOUNT = os.getenv("EMAIL_ACCOUNT")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 EMAIL_FROM = os.getenv("EMAIL_FROM")
-
 # Initialize Jinja2 environment
 template_env = Environment(
     loader=FileSystemLoader(os.path.join(os.getcwd(), "app/templates")),
@@ -37,7 +36,6 @@ async def send_email(to_email: str, subject: str, template_name: str, context: d
         message["Subject"] = subject
 
         message.attach(MIMEText(html_content, "html"))
-
         await send(
             message,
             hostname=EMAIL_HOST,
@@ -50,7 +48,7 @@ async def send_email(to_email: str, subject: str, template_name: str, context: d
     except HTTPException as e:
         return {
             "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR,
+            "message": EErrorMessages.SYSTEM_ERROR.value,
             "payload": None,
         }
 

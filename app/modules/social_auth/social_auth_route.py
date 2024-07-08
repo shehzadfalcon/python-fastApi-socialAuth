@@ -33,12 +33,13 @@ import os
 from fastapi.responses import RedirectResponse
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi import APIRouter, HTTPException, status, Request
-from app.modules.social_auth.social_auth_service import SocialAuthService
-from app.enums.error_messages import EErrorMessages
-from app.modules.auth.schemas.link_account import LinkAccountDto
-from app.enums.steps import Steps
-from app.utils.create_response import create_response
+from modules.social_auth.social_auth_service import SocialAuthService
+from enums.error_messages import EErrorMessages
+from modules.auth.schemas.link_account import LinkAccountDto
+from enums.steps import Steps
+from utils.format_response import format_response
 
+# Initialize APIRouter
 router = APIRouter()
 
 # Retrieve OAuth credentials from environment variables
@@ -53,7 +54,6 @@ sso = GoogleSSO(
     redirect_uri=REDIRECT_URI,
     allow_insecure_http=True,  # Set to False in production
 )
-
 
 @router.get("/google")
 async def auth_login():
@@ -100,20 +100,20 @@ async def auth_callback(request: Request):
             redirect_url = f"{os.getenv('FRONTEND_URL')}/login/google?token={token}&user={user_data}"
             return RedirectResponse(url=redirect_url)
 
-        elif payload.get("nextStep") == Steps.ACCOUNT_LINKING:
+        elif payload.get("nextStep") == Steps.ACCOUNT_LINKING.value:
             provider_id = profile["id"]
             provider = profile["provider"]
             encoded_email = profile["email"]
             redirect_url = f"{os.getenv('FRONTEND_URL')}/link-account?otp_token={encoded_email}&providerId={provider_id}&provider={provider}"
             return RedirectResponse(url=redirect_url)
         else:
-            create_response(
+            format_response(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
-                EErrorMessages.SYSTEM_ERROR,
+                EErrorMessages.SYSTEM_ERROR.value,
             )
 
     except HTTPException as e:
-        create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
 
 
 @router.post("/link-accounts", response_model=dict)
@@ -131,4 +131,4 @@ async def link_account(link_account_dto: LinkAccountDto):
         return await SocialAuthService.link_account(link_account_dto)
 
     except HTTPException as e:
-        create_response(e.status_code, EErrorMessages.SYSTEM_ERROR)
+        format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
