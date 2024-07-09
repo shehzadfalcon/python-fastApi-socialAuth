@@ -40,7 +40,7 @@ from enums.error_messages import EErrorMessages
 from modules.auth.schemas.link_account import LinkAccountDto
 from enums.steps import Steps
 
-#utils
+# utils
 from utils.raise_response import raise_response
 from utils.raise_exception import raise_exception
 from interfaces.response import IResponse
@@ -61,6 +61,7 @@ sso = GoogleSSO(
     redirect_uri=REDIRECT_URI,
     allow_insecure_http=True,  # Set to False in production
 )
+
 
 @router.get("/google")
 async def auth_login():
@@ -124,7 +125,7 @@ async def auth_callback(request: Request):
 
 
 @router.post("/link-accounts", response_model=IResponse)
-async def link_account(link_account_dto: LinkAccountDto)-> IResponse:
+async def link_account(link_account_dto: LinkAccountDto) -> IResponse:
     """
     Handles linking of user accounts from different providers.
 
@@ -135,9 +136,8 @@ async def link_account(link_account_dto: LinkAccountDto)-> IResponse:
     - dict: Returns success or error response based on linking operation.
     """
     try:
-        payload= await SocialAuthService.link_account(link_account_dto)
-        raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value,payload)
-
+        payload = await SocialAuthService.link_account(link_account_dto)
+        raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value, payload)
 
     except HTTPException as e:
         return raise_exception(e.status_code, e.detail)

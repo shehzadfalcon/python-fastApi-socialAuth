@@ -37,7 +37,7 @@ from modules.auth.schemas.link_account import LinkAccountDto
 import time
 from modules.user.user_service import UserService
 
-#interface
+# interface
 from interfaces.login import ILogin
 
 # Initialize user collection from the database
@@ -140,13 +140,11 @@ class SocialAuthService:
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.INVALID_OTP.value)
 
-
         otp_expire_at = user["OTPExpireAt"]
         current_time = int(time.time())
 
         if otp_expire_at > current_time:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.OTP_EXPIRED.value)
-
 
         # Update the user with the new provider
         await user_collection.update_one(
@@ -172,4 +170,3 @@ class SocialAuthService:
         user = await user_collection.find_one({"_id": user["_id"]})
         user["_id"] = str(user["_id"])
         return {"user": UserService.formatUser(user), "token": token}
-

@@ -18,11 +18,11 @@ Imports:
 from fastapi import APIRouter, HTTPException, status, Request
 from modules.user.user_service import UserService
 
-#utils
+# utils
 from utils.raise_response import raise_response
 from utils.raise_exception import raise_exception
 
-#enums
+# enums
 from enums.response_messages import EResponseMessages
 from interfaces.response import IResponse
 
@@ -38,7 +38,7 @@ router = APIRouter()
 
 @router.get("/", response_model=IResponse)
 @UserDecorator
-async def get_profile(request: Request)-> IResponse:
+async def get_profile(request: Request) -> IResponse:
     """
     Retrieves the profile of the authenticated user.
 
@@ -58,7 +58,7 @@ async def get_profile(request: Request)-> IResponse:
 
 @router.get("/{user_id}", response_model=IResponse)
 @UserDecorator
-async def get_user(request: Request, user_id: str)-> IResponse:
+async def get_user(request: Request, user_id: str) -> IResponse:
     """
     Retrieves a user by their ObjectId.s
 
@@ -73,7 +73,7 @@ async def get_user(request: Request, user_id: str)-> IResponse:
     """
 
     try:
-        payload= await UserService.get_user_by_id(user_id)
+        payload = await UserService.get_user_by_id(user_id)
 
         return raise_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED.value, payload)
 
@@ -83,7 +83,7 @@ async def get_user(request: Request, user_id: str)-> IResponse:
 
 @router.put("/", response_model=IResponse)
 @UserDecorator
-async def update_user(request: Request, form_data: UpdateProfileSchema)-> IResponse:
+async def update_user(request: Request, form_data: UpdateProfileSchema) -> IResponse:
     """
     Updates a user's profile information.
 
@@ -99,7 +99,7 @@ async def update_user(request: Request, form_data: UpdateProfileSchema)-> IRespo
     """
     try:
         current_user = request.state.user
-        payload= await UserService.update_user(current_user["_id"], form_data)
+        payload = await UserService.update_user(current_user["_id"], form_data)
         return raise_response(status.HTTP_200_OK, EResponseMessages.PROFILE_UPDATED.value, payload)
     except HTTPException as e:
         return raise_exception(e.status_code, e.detail)
@@ -107,7 +107,7 @@ async def update_user(request: Request, form_data: UpdateProfileSchema)-> IRespo
 
 @router.put("/password", response_model=IResponse)
 @UserDecorator
-async def update_password(request: Request, form_data: UpdatePasswordSchema)-> IResponse:
+async def update_password(request: Request, form_data: UpdatePasswordSchema) -> IResponse:
     """
     Updates a user's password information.
 
@@ -122,9 +122,8 @@ async def update_password(request: Request, form_data: UpdatePasswordSchema)-> I
     """
     try:
         current_user = request.state.user
-        payload= await UserService.update_password(current_user, form_data)
-        return raise_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_UPDATED.value,payload)
-
+        payload = await UserService.update_password(current_user, form_data)
+        return raise_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_UPDATED.value, payload)
 
     except HTTPException as e:
         return raise_exception(e.status_code, e.detail)

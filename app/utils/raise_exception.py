@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from typing import Any, Union
 from enums.error_messages import EErrorMessages
 
+
 def raise_exception(status_code: int, message: Union[str, Any] = None) -> JSONResponse:
     """
     Formats a response dictionary with the given status code, message, and optional payload.

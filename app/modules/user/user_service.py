@@ -17,10 +17,10 @@ from modules.user.user_model import User
 from database import db
 from bson import ObjectId
 
-#utils
+# utils
 from services.auth_helper import AuthHelper
 
-#enums
+# enums
 from enums.error_messages import EErrorMessages
 
 # schemas
@@ -46,12 +46,12 @@ class UserService:
     def formatUser(user: User) -> User:
         user["_id"] = str(user["_id"])
         if "emailVerifiedAt" in user and user["emailVerifiedAt"]:
-              user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
-        
+            user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
+
         return user
 
     @staticmethod
-    async def get_user_by_id(user_id: str) ->  dict[User]:
+    async def get_user_by_id(user_id: str) -> dict[User]:
         """
         Retrieves a user by their ObjectId.
 
@@ -70,7 +70,7 @@ class UserService:
         user["_id"] = str(user["_id"])
         user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
         user["password"] = None
-        return  {"user": UserService.formatUser(user)}
+        return {"user": UserService.formatUser(user)}
 
     @staticmethod
     async def update_user(user_id: str, user: UpdateProfileSchema) -> dict[User]:
@@ -90,7 +90,6 @@ class UserService:
         update_result = await user_collection.update_one({"_id": ObjectId(user_id)}, {"$set": user.dict(by_alias=True)})
         if update_result.modified_count == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS)
-            
 
         updated_user = await user_collection.find_one({"_id": ObjectId(user_id)})
         return {"user": UserService.formatUser(updated_user)}
@@ -118,7 +117,6 @@ class UserService:
         update_result = await user_collection.update_one({"_id": ObjectId(current_user["_id"])}, {"$set": user_dict})
         if update_result.modified_count == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS)
-
 
         updated_user = await user_collection.find_one({"_id": ObjectId(current_user["_id"])})
         return {"user": UserService.formatUser(updated_user)}
