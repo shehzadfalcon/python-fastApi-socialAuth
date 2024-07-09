@@ -38,7 +38,7 @@ router = APIRouter()
 
 @router.get("/", response_model=IResponse)
 @UserDecorator
-async def get_profile(request: Request):
+async def get_profile(request: Request)-> IResponse:
     """
     Retrieves the profile of the authenticated user.
 
@@ -58,7 +58,7 @@ async def get_profile(request: Request):
 
 @router.get("/{user_id}", response_model=IResponse)
 @UserDecorator
-async def get_user(request: Request, user_id: str):
+async def get_user(request: Request, user_id: str)-> IResponse:
     """
     Retrieves a user by their ObjectId.s
 
@@ -83,7 +83,7 @@ async def get_user(request: Request, user_id: str):
 
 @router.put("/", response_model=IResponse)
 @UserDecorator
-async def update_user(request: Request, form_data: UpdateProfileSchema):
+async def update_user(request: Request, form_data: UpdateProfileSchema)-> IResponse:
     """
     Updates a user's profile information.
 
@@ -107,7 +107,7 @@ async def update_user(request: Request, form_data: UpdateProfileSchema):
 
 @router.put("/password", response_model=IResponse)
 @UserDecorator
-async def update_password(request: Request, form_data: UpdatePasswordSchema):
+async def update_password(request: Request, form_data: UpdatePasswordSchema)-> IResponse:
     """
     Updates a user's password information.
 

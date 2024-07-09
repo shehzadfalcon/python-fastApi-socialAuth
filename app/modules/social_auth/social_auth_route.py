@@ -39,8 +39,11 @@ from enums.error_messages import EErrorMessages
 
 from modules.auth.schemas.link_account import LinkAccountDto
 from enums.steps import Steps
+
+#utils
 from utils.raise_response import raise_response
 from utils.raise_exception import raise_exception
+from interfaces.response import IResponse
 
 
 # Initialize APIRouter
@@ -120,8 +123,8 @@ async def auth_callback(request: Request):
         return raise_exception(e.status_code, e.detail)
 
 
-@router.post("/link-accounts", response_model=dict)
-async def link_account(link_account_dto: LinkAccountDto):
+@router.post("/link-accounts", response_model=IResponse)
+async def link_account(link_account_dto: LinkAccountDto)-> IResponse:
     """
     Handles linking of user accounts from different providers.
 
@@ -133,7 +136,7 @@ async def link_account(link_account_dto: LinkAccountDto):
     """
     try:
         payload= await SocialAuthService.link_account(link_account_dto)
-        raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value)
+        raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value,payload)
 
 
     except HTTPException as e:

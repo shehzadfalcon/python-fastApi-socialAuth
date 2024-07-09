@@ -43,7 +43,7 @@ router = APIRouter()
 
 
 @router.post("/identify", response_model=IResponse)
-async def identify(identify_dto: IdentifyDto):
+async def identify(identify_dto: IdentifyDto)-> IResponse:
     """
     Identify the user by email.
 
@@ -57,7 +57,7 @@ async def identify(identify_dto: IdentifyDto):
 
 
 @router.post("/register", response_model=IResponse)
-async def register(form_data: RegisterSchema):
+async def register(form_data: RegisterSchema)-> IResponse:
     """
     Register a new user.
 
@@ -72,7 +72,7 @@ async def register(form_data: RegisterSchema):
 
 
 @router.post("/login", response_model=IResponse)
-async def login(login_dto: LoginSchema):
+async def login(login_dto: LoginSchema)-> IResponse:
     """
     Log in a user.
 
@@ -90,7 +90,7 @@ async def login(login_dto: LoginSchema):
 
 
 @router.post("/verify-email", response_model=IResponse)
-async def verify_email(verify_email_dto: VerifyEmailSchema):
+async def verify_email(verify_email_dto: VerifyEmailSchema)-> IResponse:
     """
     Verify a user's email using OTP.
 
@@ -108,7 +108,7 @@ async def verify_email(verify_email_dto: VerifyEmailSchema):
 
 
 @router.post("/forgot-password", response_model=IResponse)
-async def forgot_password(forgot_password: ForgotPasswordSchema):
+async def forgot_password(forgot_password: ForgotPasswordSchema)-> IResponse:
     """
     Handle forgot password process.
 
@@ -122,7 +122,7 @@ async def forgot_password(forgot_password: ForgotPasswordSchema):
 
 
 @router.post("/resend-otp", response_model=IResponse)
-async def resend_otp(resend_otp: ForgotPasswordSchema):
+async def resend_otp(resend_otp: ForgotPasswordSchema) -> IResponse:
     """
     Resend OTP to the user's email.
 
@@ -136,7 +136,7 @@ async def resend_otp(resend_otp: ForgotPasswordSchema):
 
 
 @router.post("/reset-password", response_model=IResponse)
-async def reset_password(reset_password: ResetPasswordSchema):
+async def reset_password(reset_password: ResetPasswordSchema) -> IResponse:
     """
     Reset the user's password using email or OTP.
 

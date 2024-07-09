@@ -37,6 +37,9 @@ from modules.auth.schemas.link_account import LinkAccountDto
 import time
 from modules.user.user_service import UserService
 
+#interface
+from interfaces.login import ILogin
+
 # Initialize user collection from the database
 user_collection = db.get_collection("users")
 
@@ -51,7 +54,7 @@ class SocialAuthService:
     """
 
     @staticmethod
-    async def social_login(email: str, full_name: str, provider_id: str, provider: str):
+    async def social_login(email: str, full_name: str, provider_id: str, provider: str) -> ILogin:
         """
         Handles social login authentication.
 
@@ -122,7 +125,7 @@ class SocialAuthService:
             return {"user": UserService.formatUser(user), "token": token}
 
     @staticmethod
-    async def link_account(link_account_dto: LinkAccountDto):
+    async def link_account(link_account_dto: LinkAccountDto) -> ILogin:
         """
         Handles linking of user accounts from different providers.
 

@@ -43,13 +43,15 @@ from bson import ObjectId
 # Time module for handling timestamps
 import time
 
+#interface
+from interfaces.login import ILogin
 
 # MongoDB collection for users
 user_collection = db.get_collection("users")
 
 class AuthService:
     @staticmethod
-    async def identify_user(email: str):
+    async def identify_user(email: str) -> ILogin:
         """
         Identify a user by email.
 
@@ -82,7 +84,7 @@ class AuthService:
         return {"nextStep": Steps.SET_PASSWORD.value}
 
     @staticmethod
-    async def register_user(user_dict: dict):
+    async def register_user(user_dict: dict) -> None:
         """
         Register a new user.
 
@@ -115,7 +117,7 @@ class AuthService:
         
 
     @staticmethod
-    async def login_user(email: str, password: str):
+    async def login_user(email: str, password: str) -> ILogin:
         """
         Log in a user.
 
@@ -159,7 +161,7 @@ class AuthService:
         return {"user": UserService.formatUser(user), "token": token}
 
     @staticmethod
-    async def verify_user_email(email: str, otp: int, is_verify_email: bool):
+    async def verify_user_email(email: str, otp: int, is_verify_email: bool) -> ILogin:
         """
         Verify user's email using OTP.
 
@@ -179,7 +181,6 @@ class AuthService:
                 ]
             }
         )
-
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.INVALID_OTP.value)
 
@@ -205,13 +206,13 @@ class AuthService:
                 context,
             )
 
-        if not user["password"]:
-            return {"nextStep": Steps.SETUP_PASSWORD.value}
+            if "password" in user and not user["password"]:
+              return {"nextStep": Steps.SETUP_PASSWORD.value}
         user["_id"] = str(user["_id"])
         return {"user": UserService.formatUser(user), "token": token}
 
     @staticmethod
-    async def handle_forgot_password(email: str):
+    async def handle_forgot_password(email: str) -> None:
         """
         Handle the forgot password process.
 
@@ -250,7 +251,7 @@ class AuthService:
         
 
     @staticmethod
-    async def handle_resend_otp(email: str):
+    async def handle_resend_otp(email: str) -> None:
         """
         Resend OTP to the user's email.
 
@@ -283,7 +284,7 @@ class AuthService:
         
 
     @staticmethod
-    async def handle_reset_password(otp: int, new_password: str):
+    async def handle_reset_password(otp: int, new_password: str) ->None:
         """
         Reset user's password using email and OTP.
 

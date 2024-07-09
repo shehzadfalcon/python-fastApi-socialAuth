@@ -14,6 +14,8 @@ class EUserRole(str, Enum):
 # Define the Provider model (if you have a Provider model)
 class Provider(BaseModel):
     # Add the fields for Provider here
+    providerId: str
+    provider: str
     pass
 
 

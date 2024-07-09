@@ -43,14 +43,15 @@ class UserService:
     """
 
     @staticmethod
-    def formatUser(user: User):
+    def formatUser(user: User) -> User:
         user["_id"] = str(user["_id"])
         if "emailVerifiedAt" in user and user["emailVerifiedAt"]:
               user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
+        
         return user
 
     @staticmethod
-    async def get_user_by_id(user_id: str):
+    async def get_user_by_id(user_id: str) ->  dict[User]:
         """
         Retrieves a user by their ObjectId.
 
@@ -72,7 +73,7 @@ class UserService:
         return  {"user": UserService.formatUser(user)}
 
     @staticmethod
-    async def update_user(user_id: str, user: UpdateProfileSchema):
+    async def update_user(user_id: str, user: UpdateProfileSchema) -> dict[User]:
         """
         Updates a user's profile information.
 
@@ -95,7 +96,7 @@ class UserService:
         return {"user": UserService.formatUser(updated_user)}
 
     @staticmethod
-    async def update_password(current_user: User, updatePasswordSchema: UpdatePasswordSchema):
+    async def update_password(current_user: User, updatePasswordSchema: UpdatePasswordSchema) -> dict[User]:
         """
         Updates a user's password information.
 
