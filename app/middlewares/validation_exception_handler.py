@@ -1,5 +1,5 @@
 
-from utils.format_response import format_response
+from utils.raise_response import raise_response
 from fastapi import status,Request
 from fastapi.exceptions import RequestValidationError
 
@@ -15,4 +15,4 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         else:
             error_messages += f"{field_name.capitalize()} {error.get('msg')}. "
 
-    return format_response(status.HTTP_400_BAD_REQUEST,error_messages.strip())
+    return raise_response(status.HTTP_400_BAD_REQUEST,error_messages.strip())

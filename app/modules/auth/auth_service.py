@@ -15,7 +15,7 @@ Functions:
 
 """
 # FastAPI status codes
-from fastapi import status
+from fastapi import status ,HTTPException
 
 # Database connection
 from database import db
@@ -28,7 +28,6 @@ from services.email import send_email
 
 # Enums for error messages, response messages, email subjects, and steps
 from enums.error_messages import EErrorMessages
-from enums.response_messages import EResponseMessages
 from enums.email_subject_keys import EEmailSubjectKeys
 from enums.steps import Steps
 
@@ -44,8 +43,6 @@ from bson import ObjectId
 # Time module for handling timestamps
 import time
 
-# Utility function for formatting responses
-from utils.format_response import format_response
 
 # MongoDB collection for users
 user_collection = db.get_collection("users")
@@ -64,11 +61,7 @@ class AuthService:
         """
         user = await user_collection.find_one({"email": email.lower()})
         if not user:
-            return format_response(
-                status.HTTP_200_OK,
-                EErrorMessages.USER_NOT_EXISTS.value,
-                {"nextStep": Steps.USER_REGISTER.value},
-            )
+            return {"nextStep": Steps.USER_REGISTER.value}
 
         if user and not user.get("emailVerifiedAt"):
             otp = AuthHelper.generate_otp()
@@ -84,9 +77,9 @@ class AuthService:
                 {"_id": ObjectId(user["_id"])},
                 {"$set": {"OTP": otp, "OTPExpireAt": otp_expire_at}},
             )
-            return format_response(status.HTTP_200_OK, None, {"nextStep": Steps.VERIFY_EMAIL.value})
-
-        return format_response(status.HTTP_200_OK, None, {"nextStep": Steps.SET_PASSWORD.value})
+            return  {"nextStep": Steps.VERIFY_EMAIL.value}
+        
+        return {"nextStep": Steps.SET_PASSWORD.value}
 
     @staticmethod
     async def register_user(user_dict: dict):
@@ -101,10 +94,7 @@ class AuthService:
         """
         find_user = await user_collection.find_one({"email": user_dict.get("email")})
         if find_user:
-            return format_response(
-                status.HTTP_409_CONFLICT,
-                EErrorMessages.USER_ALREADY_EXISTS.value,
-            )
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.USER_ALREADY_EXISTS.value)
 
         otp = AuthHelper.generate_otp()
         otp_expire_at = AuthHelper.generate_expiry_time()
@@ -122,7 +112,7 @@ class AuthService:
             "registration.html",
             context,
         )
-        return format_response(status.HTTP_200_OK, EResponseMessages.USER_CREATED.value)
+        
 
     @staticmethod
     async def login_user(email: str, password: str):
@@ -138,7 +128,8 @@ class AuthService:
         """
         user = await user_collection.find_one({"email": email.lower()})
         if not user:
-            return format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.USER_NOT_EXISTS.value)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS.value)
+
 
         if not user.get("emailVerifiedAt"):
             otp = AuthHelper.generate_otp()
@@ -154,22 +145,18 @@ class AuthService:
                 {"_id": user["_id"]},
                 {"$set": {"OTP": otp, "OTPExpireAt": otp_expire_at}},
             )
-            return format_response(
-                status.HTTP_406_NOT_ACCEPTABLE,
-                EErrorMessages.USER_NOT_VERIFIED.value,
-            )
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=EErrorMessages.USER_NOT_VERIFIED.value)
+
 
         is_correct = await AuthHelper.authenticate_user(email, password)
         if not is_correct:
-            return format_response(status.HTTP_409_CONFLICT, EErrorMessages.INVALID_PASSWORD.value)
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.INVALID_PASSWORD.value)
+
 
         token_data = {"sub": str(user["_id"]), "email": user["email"]}
         token = AuthHelper.create_access_token(data=token_data)
-        return format_response(
-            status.HTTP_200_OK,
-            EResponseMessages.USER_LOGIN.value,
-            {"user": UserService.formatUser(user), "token": token},
-        )
+        
+        return {"user": UserService.formatUser(user), "token": token}
 
     @staticmethod
     async def verify_user_email(email: str, otp: int, is_verify_email: bool):
@@ -194,12 +181,12 @@ class AuthService:
         )
 
         if not user:
-            return format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.INVALID_OTP.value)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.INVALID_OTP.value)
 
         otp_expire_at = user["OTPExpireAt"]
         current_time = int(time.time())
         if otp_expire_at > current_time:
-            return format_response(status.HTTP_409_CONFLICT, EErrorMessages.OTP_EXPIRED.value)
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.OTP_EXPIRED.value)
 
         token_data = {"sub": str(user["_id"]), "email": user["email"]}
         token = AuthHelper.create_access_token(data=token_data)
@@ -219,9 +206,9 @@ class AuthService:
             )
 
         if not user["password"]:
-            return format_response(status.HTTP_200_OK, None, {"nextStep": Steps.SETUP_PASSWORD.value})
+            return {"nextStep": Steps.SETUP_PASSWORD.value}
         user["_id"] = str(user["_id"])
-        return format_response(status.HTTP_200_OK, None, {"user": UserService.formatUser(user), "token": token})
+        return {"user": UserService.formatUser(user), "token": token}
 
     @staticmethod
     async def handle_forgot_password(email: str):
@@ -239,13 +226,12 @@ class AuthService:
         )
 
         if not user:
-            return format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.USER_NOT_EXISTS.value)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS.value)
+
 
         if not user.get("emailVerifiedAt"):
-            return format_response(
-                status.HTTP_409_CONFLICT,
-                EErrorMessages.USER_NOT_VERIFIED.value,
-            )
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.USER_NOT_VERIFIED.value)
+
         
         OTP = AuthHelper.generate_otp()
         OTPExpireAt = AuthHelper.generate_expiry_time()
@@ -261,7 +247,7 @@ class AuthService:
             {"$set": {"OTP": OTP, "OTPExpireAt": OTPExpireAt}},
         )
 
-        return format_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_RESET_EMAIL.value)
+        
 
     @staticmethod
     async def handle_resend_otp(email: str):
@@ -277,7 +263,8 @@ class AuthService:
         user = await user_collection.find_one({"email": email.lower()})
 
         if not user:
-            return format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.USER_NOT_EXISTS.value)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS.value)
+
 
         OTP = AuthHelper.generate_otp()
         OTPExpireAt = AuthHelper.generate_expiry_time()
@@ -293,7 +280,7 @@ class AuthService:
             {"$set": {"OTP": OTP, "OTPExpireAt": OTPExpireAt}},
         )
 
-        return format_response(status.HTTP_200_OK, EResponseMessages.OTP_RESEND.value)
+        
 
     @staticmethod
     async def handle_reset_password(otp: int, new_password: str):
@@ -311,16 +298,18 @@ class AuthService:
         user = await user_collection.find_one({"OTP": int(otp)})
 
         if not user:
-            return format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.INVALID_OTP.value)
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.INVALID_OTP.value)
+
 
         otp_expire_at = user["OTPExpireAt"]
         current_time = int(time.time())
         if otp_expire_at > current_time:
-            return format_response(status.HTTP_409_CONFLICT, EErrorMessages.OTP_EXPIRED.value)
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.OTP_EXPIRED.value)
+
 
         hashed_password = AuthHelper.get_password_hash(new_password)
         await user_collection.update_one(
             {"_id": ObjectId(user["_id"])},
             {"$set": {"password": hashed_password}},
         )
-        return format_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_RESET.value)
+        

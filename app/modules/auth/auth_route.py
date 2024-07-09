@@ -18,7 +18,7 @@ and optional payload.
 
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,status
 
 # validation schema
 from modules.auth.schemas.register import RegisterSchema
@@ -29,9 +29,11 @@ from modules.auth.schemas.reset_password import ResetPasswordSchema
 from modules.auth.schemas.identify import IdentifyDto
 
 # utils
-from enums.error_messages import EErrorMessages
 from interfaces.response import IResponse
-from utils.format_response import format_response
+from utils.raise_response import raise_response
+from utils.raise_exception import raise_exception
+
+from enums.response_messages import EResponseMessages
 
 
 # auth service
@@ -48,9 +50,10 @@ async def identify(identify_dto: IdentifyDto):
     - **identify_dto**: IdentifyDto - Contains the user's email.
     """
     try:
-        return await AuthService.identify_user(identify_dto.email)
+         data =  await AuthService.identify_user(identify_dto.email)
+         return raise_response(status.HTTP_200_OK, EResponseMessages.USER_IDENTIFIED.value, data)
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.post("/register", response_model=IResponse)
@@ -62,9 +65,10 @@ async def register(form_data: RegisterSchema):
     """
     try:
         user_dict = form_data.dict()
-        return await AuthService.register_user(user_dict)
+        await AuthService.register_user(user_dict)
+        return raise_response(status.HTTP_200_OK, EResponseMessages.USER_CREATED.value)
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.post("/login", response_model=IResponse)
@@ -75,9 +79,14 @@ async def login(login_dto: LoginSchema):
     - **login_dto**: LoginSchema - Contains login data (email and password).
     """
     try:
-        return await AuthService.login_user(login_dto.email, login_dto.password)
+        payload = await AuthService.login_user(login_dto.email, login_dto.password)
+        return raise_response(
+            status.HTTP_200_OK,
+            EResponseMessages.USER_LOGIN.value,
+            payload,
+        )
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.post("/verify-email", response_model=IResponse)
@@ -88,13 +97,14 @@ async def verify_email(verify_email_dto: VerifyEmailSchema):
     - **verify_email_dto**: VerifyEmailSchema - Contains email, OTP, and verification status.
     """
     try:
-        return await AuthService.verify_user_email(
+        payload = await AuthService.verify_user_email(
             verify_email_dto.email,
             verify_email_dto.otp,
             verify_email_dto.isVerifyEmail,
         )
+        return raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value, payload)
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.post("/forgot-password", response_model=IResponse)
@@ -105,9 +115,10 @@ async def forgot_password(forgot_password: ForgotPasswordSchema):
     - **forgot_password**: ForgotPasswordSchema - Contains the user's email.
     """
     try:
-        return await AuthService.handle_forgot_password(forgot_password.email)
+         await AuthService.handle_forgot_password(forgot_password.email)
+         return raise_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_RESET_EMAIL.value)
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.post("/resend-otp", response_model=IResponse)
@@ -118,9 +129,10 @@ async def resend_otp(resend_otp: ForgotPasswordSchema):
     - **resend_otp**: ForgotPasswordSchema - Contains the user's email.
     """
     try:
-        return await AuthService.handle_resend_otp(resend_otp.email)
+         await AuthService.handle_resend_otp(resend_otp.email)
+         return raise_response(status.HTTP_200_OK, EResponseMessages.OTP_RESEND.value)
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.post("/reset-password", response_model=IResponse)
@@ -131,6 +143,7 @@ async def reset_password(reset_password: ResetPasswordSchema):
     - **reset_password**: ResetPasswordSchema - Contains email, OTP, and new password.
     """
     try:
-        return await AuthService.handle_reset_password( reset_password.otp, reset_password.password)
+         await AuthService.handle_reset_password( reset_password.otp, reset_password.password)
+         return raise_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_RESET.value)
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)

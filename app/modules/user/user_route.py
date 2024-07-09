@@ -19,11 +19,11 @@ from fastapi import APIRouter, HTTPException, status, Request
 from modules.user.user_service import UserService
 
 #utils
-from utils.format_response import format_response
+from utils.raise_response import raise_response
+from utils.raise_exception import raise_exception
 
 #enums
 from enums.response_messages import EResponseMessages
-from enums.error_messages import EErrorMessages
 from interfaces.response import IResponse
 
 # schemas
@@ -50,9 +50,10 @@ async def get_profile(request: Request):
     """
     try:
         user = request.state.user
-        return format_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED.value, {"user": UserService.formatUser(user)})
+        payload = await UserService.formatUser(user)
+        return raise_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED.value, payload)
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.get("/{user_id}", response_model=IResponse)
@@ -72,9 +73,12 @@ async def get_user(request: Request, user_id: str):
     """
 
     try:
-        return await UserService.get_user_by_id(user_id)
+        payload= await UserService.get_user_by_id(user_id)
+
+        return raise_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED.value, payload)
+
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.put("/", response_model=IResponse)
@@ -95,10 +99,10 @@ async def update_user(request: Request, form_data: UpdateProfileSchema):
     """
     try:
         current_user = request.state.user
-        return await UserService.update_user(current_user["_id"], form_data)
+        payload= await UserService.update_user(current_user["_id"], form_data)
+        return raise_response(status.HTTP_200_OK, EResponseMessages.PROFILE_UPDATED.value, payload)
     except HTTPException as e:
-        print("Error--->", e)
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.put("/password", response_model=IResponse)
@@ -118,7 +122,9 @@ async def update_password(request: Request, form_data: UpdatePasswordSchema):
     """
     try:
         current_user = request.state.user
-        return await UserService.update_password(current_user, form_data)
+        payload= await UserService.update_password(current_user, form_data)
+        return raise_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_UPDATED.value,payload)
+
 
     except HTTPException as e:
-        return format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)

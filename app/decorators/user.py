@@ -7,7 +7,7 @@ import os
 from database import db
 
 # utils
-from utils.format_response import format_response
+from utils.raise_response import raise_response
 from enums.error_messages import EErrorMessages
 
 SECRET_KEY = os.getenv("JWT_TOKEN_SECRET")
@@ -29,18 +29,18 @@ def UserDecorator(func: Callable):
                 payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
                 _id: str = payload.get("sub")
                 if _id is None:
-                    return format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.UNAUTHORIZED_USER.value)
+                    return raise_response(status.HTTP_404_NOT_FOUND, EErrorMessages.UNAUTHORIZED_USER.value)
             except JWTError:
-                return format_response(status.HTTP_401_UNAUTHORIZED, EErrorMessages.INVALID_TOKEN.value)
+                return raise_response(status.HTTP_401_UNAUTHORIZED, EErrorMessages.INVALID_TOKEN.value)
 
             user = await user_collection.find_one({"_id": ObjectId(_id)})
             if user is None:
-                return format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.USER_NOT_EXISTS.value)
+                return raise_response(status.HTTP_404_NOT_FOUND, EErrorMessages.USER_NOT_EXISTS.value)
             user["_id"] = str(user["_id"])
             user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
             request.state.user = dict(user)
         else:
-            return format_response(status.HTTP_401_UNAUTHORIZED, EErrorMessages.UNAUTHORIZED_ACCESS.value)
+            return raise_response(status.HTTP_401_UNAUTHORIZED, EErrorMessages.UNAUTHORIZED_ACCESS.value)
 
         return await func(request, *args, **kwargs)
 

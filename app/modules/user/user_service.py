@@ -19,11 +19,9 @@ from bson import ObjectId
 
 #utils
 from services.auth_helper import AuthHelper
-from utils.format_response import format_response
 
 #enums
 from enums.error_messages import EErrorMessages
-from enums.response_messages import EResponseMessages
 
 # schemas
 from modules.user.schemas.update_password import UpdatePasswordSchema
@@ -67,12 +65,11 @@ class UserService:
         """
         user = await user_collection.find_one({"_id": ObjectId(user_id)})
         if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS)
         user["_id"] = str(user["_id"])
         user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
         user["password"] = None
-
-        return format_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED.value, {"user": UserService.formatUser(user)})
+        return  {"user": UserService.formatUser(user)}
 
     @staticmethod
     async def update_user(user_id: str, user: UpdateProfileSchema):
@@ -91,10 +88,11 @@ class UserService:
         """
         update_result = await user_collection.update_one({"_id": ObjectId(user_id)}, {"$set": user.dict(by_alias=True)})
         if update_result.modified_count == 0:
-            format_response(status.HTTP_404_NOT_FOUND, EErrorMessages.USER_NOT_EXISTS.value)
-        updated_user = await user_collection.find_one({"_id": ObjectId(user_id)})
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS)
+            
 
-        return format_response(status.HTTP_200_OK, EResponseMessages.PROFILE_UPDATED.value, {"user": UserService.formatUser(updated_user)})
+        updated_user = await user_collection.find_one({"_id": ObjectId(user_id)})
+        return {"user": UserService.formatUser(updated_user)}
 
     @staticmethod
     async def update_password(current_user: User, updatePasswordSchema: UpdatePasswordSchema):
@@ -110,15 +108,16 @@ class UserService:
         Raises:
         - HTTPException: Raises 404 HTTPException if user is not found.
         """
-        print("user_dict----->", current_user)
 
         is_correct = await AuthHelper.authenticate_user(current_user["email"], updatePasswordSchema.oldPassword)
         if not is_correct:
-            return format_response(status.HTTP_409_CONFLICT, EErrorMessages.INVALID_OLD_PASSWORD.value)
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.INVALID_OLD_PASSWORD.value)
 
         user_dict = {"password": AuthHelper.get_password_hash(updatePasswordSchema.password)}
         update_result = await user_collection.update_one({"_id": ObjectId(current_user["_id"])}, {"$set": user_dict})
         if update_result.modified_count == 0:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS)
+
+
         updated_user = await user_collection.find_one({"_id": ObjectId(current_user["_id"])})
-        return format_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_UPDATED.value, {"user": UserService.formatUser(updated_user)})
+        return {"user": UserService.formatUser(updated_user)}

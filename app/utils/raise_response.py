@@ -1,7 +1,7 @@
 from fastapi.responses import JSONResponse
 
 
-def format_response(status_code: int, message: str = None, payload: dict = None) -> dict:
+def raise_response(status_code: int, message: str = None, payload: dict = None) -> dict:
     """
     Formats a response dictionary with the given status code, message, and optional payload.
 
@@ -14,10 +14,10 @@ def format_response(status_code: int, message: str = None, payload: dict = None)
         dict: A dictionary representing the formatted response.
 
     Example:
-        >>> format_response(200, "Success", {"data": "value"})
+        >>> raise_response(200, "Success", {"data": "value"})
         {'statusCode': 200, 'message': 'Success', 'payload': {'data': 'value'}}
 
-        >>> format_response(404, "Not Found")
+        >>> raise_response(404, "Not Found")
         {'statusCode': 404, 'message': 'Not Found'}
     """
     response = {"statusCode": status_code, "message": message}

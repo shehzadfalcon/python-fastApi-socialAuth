@@ -46,11 +46,8 @@ async def send_email(to_email: str, subject: str, template_name: str, context: d
         )
 
     except HTTPException as e:
-        return {
-            "statusCode": e.status_code,
-            "message": EErrorMessages.SYSTEM_ERROR.value,
-            "payload": None,
-        }
+        raise HTTPException(status_code=e.status_code, detail=EErrorMessages.SYSTEM_ERROR.value)
+        
 
 
 def send_email_background(

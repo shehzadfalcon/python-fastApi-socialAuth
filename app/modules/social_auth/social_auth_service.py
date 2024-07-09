@@ -25,11 +25,10 @@ Classes:
 
 """
 
-from fastapi import status
+from fastapi import status, HTTPException
 from database import db
 from services.auth_helper import AuthHelper
 from enums.error_messages import EErrorMessages
-from enums.response_messages import EResponseMessages
 from services.email import send_email
 from enums.email_subject_keys import EEmailSubjectKeys
 from enums.steps import Steps
@@ -136,19 +135,15 @@ class SocialAuthService:
         user = await user_collection.find_one({"email": link_account_dto.email, "OTP": int(link_account_dto.otp)})
 
         if not user:
-            return {
-                "statusCode": status.HTTP_404_NOT_FOUND,
-                "message": EErrorMessages.INVALID_OTP.value,
-            }
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.INVALID_OTP.value)
+
 
         otp_expire_at = user["OTPExpireAt"]
         current_time = int(time.time())
 
         if otp_expire_at > current_time:
-            return {
-                "statusCode": status.HTTP_409_CONFLICT,
-                "message": EErrorMessages.OTP_EXPIRED.value,
-            }
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.OTP_EXPIRED.value)
+
 
         # Update the user with the new provider
         await user_collection.update_one(
@@ -173,9 +168,5 @@ class SocialAuthService:
         # Fetch the updated user data
         user = await user_collection.find_one({"_id": user["_id"]})
         user["_id"] = str(user["_id"])
+        return {"user": UserService.formatUser(user), "token": token}
 
-        return {
-            "statusCode": status.HTTP_200_OK,
-            "message": EResponseMessages.OTP_VERIFIED.value,
-            "payload": {"user": UserService.formatUser(user), "token": token},
-        }

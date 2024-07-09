@@ -34,10 +34,14 @@ from fastapi.responses import RedirectResponse
 from fastapi_sso.sso.google import GoogleSSO
 from fastapi import APIRouter, HTTPException, status, Request
 from modules.social_auth.social_auth_service import SocialAuthService
+from enums.response_messages import EResponseMessages
 from enums.error_messages import EErrorMessages
+
 from modules.auth.schemas.link_account import LinkAccountDto
 from enums.steps import Steps
-from utils.format_response import format_response
+from utils.raise_response import raise_response
+from utils.raise_exception import raise_exception
+
 
 # Initialize APIRouter
 router = APIRouter()
@@ -107,13 +111,13 @@ async def auth_callback(request: Request):
             redirect_url = f"{os.getenv('FRONTEND_URL')}/link-account?otp_token={encoded_email}&providerId={provider_id}&provider={provider}"
             return RedirectResponse(url=redirect_url)
         else:
-            format_response(
+            raise_response(
                 status.HTTP_500_INTERNAL_SERVER_ERROR,
                 EErrorMessages.SYSTEM_ERROR.value,
             )
 
     except HTTPException as e:
-        format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
 
 
 @router.post("/link-accounts", response_model=dict)
@@ -128,7 +132,9 @@ async def link_account(link_account_dto: LinkAccountDto):
     - dict: Returns success or error response based on linking operation.
     """
     try:
-        return await SocialAuthService.link_account(link_account_dto)
+        payload= await SocialAuthService.link_account(link_account_dto)
+        raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value)
+
 
     except HTTPException as e:
-        format_response(e.status_code, EErrorMessages.SYSTEM_ERROR.value)
+        return raise_exception(e.status_code, e.detail)
