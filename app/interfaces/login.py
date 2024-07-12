@@ -6,7 +6,8 @@ from pydantic import BaseModel, Field
 This module defines Pydantic models for user-related data, extending
 existing models and adding new ones for specific use cases.
 """
-
+class Token(BaseModel):
+    token:str
 
 class ExtendedUser(User):
     """
@@ -33,4 +34,4 @@ class ILogin(BaseModel):
 
     nextStep: Optional[str] = None
     user: Optional[ExtendedUser] = None
-    token: Optional[str] = None
+    token: Optional[Token] = None

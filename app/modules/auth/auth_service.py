@@ -43,9 +43,11 @@ from bson import ObjectId
 
 # Time module for handling timestamps
 import time
+from modules.auth.schemas.reset_password import ResetPasswordSchema
 
 # interface
 from interfaces.login import ILogin
+from modules.user.user_model import EUserRole
 
 # MongoDB collection for users
 user_collection = db.get_collection("users")
@@ -103,6 +105,9 @@ class AuthService:
         otp = AuthHelper.generate_otp()
         otp_expire_at = AuthHelper.generate_expiry_time()
         user_dict["OTP"] = otp
+        user_dict["role"] = EUserRole.USER
+        user_dict["isActive"] = True
+
         user_dict["OTPExpireAt"] = otp_expire_at
         user_dict["password"] = AuthHelper.get_password_hash(user_dict.get("password"))
 
@@ -156,7 +161,7 @@ class AuthService:
         token_data = {"sub": str(user["_id"]), "email": user["email"]}
         token = AuthHelper.create_access_token(data=token_data)
 
-        return {"user": UserService.formatUser(user), "token": token}
+        return {"user": UserService.formatUser(user), "token":{"token":token}}
 
     @staticmethod
     async def verify_user_email(email: str, otp: int, is_verify_email: bool) -> ILogin:
@@ -204,10 +209,10 @@ class AuthService:
                 context,
             )
 
-            if "password" in user and not user["password"]:
+            if not "password" in user:
                 return {"nextStep": Steps.SETUP_PASSWORD.value}
         user["_id"] = str(user["_id"])
-        return {"user": UserService.formatUser(user), "token": token}
+        return {"user": UserService.formatUser(user), "token":{"token":token}}
 
     @staticmethod
     async def handle_forgot_password(email: str) -> None:
@@ -275,7 +280,7 @@ class AuthService:
         )
 
     @staticmethod
-    async def handle_reset_password(otp: int, new_password: str) -> None:
+    async def handle_reset_password(reset_password:ResetPasswordSchema) -> None:
         """
         Reset user's password using email and OTP.
 
@@ -287,7 +292,12 @@ class AuthService:
         Returns:
         - dict: Response dictionary with statusCode, message, and payload fields.
         """
-        user = await user_collection.find_one({"OTP": int(otp)})
+        user =None
+        if "otp" in dict(reset_password) and reset_password.otp:
+             user = await user_collection.find_one({"OTP": int(reset_password.otp)})
+        elif "email" in dict(reset_password) and reset_password.email:
+             user = await user_collection.find_one({"email": reset_password.email})
+ 
 
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.INVALID_OTP.value)
@@ -297,7 +307,7 @@ class AuthService:
         if otp_expire_at > current_time:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=EErrorMessages.OTP_EXPIRED.value)
 
-        hashed_password = AuthHelper.get_password_hash(new_password)
+        hashed_password = AuthHelper.get_password_hash(reset_password.password)
         await user_collection.update_one(
             {"_id": ObjectId(user["_id"])},
             {"$set": {"password": hashed_password}},

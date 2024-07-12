@@ -143,7 +143,7 @@ async def reset_password(reset_password: ResetPasswordSchema) -> IResponse:
     - **reset_password**: ResetPasswordSchema - Contains email, OTP, and new password.
     """
     try:
-        await AuthService.handle_reset_password(reset_password.otp, reset_password.password)
+        await AuthService.handle_reset_password(reset_password)
         return raise_response(status.HTTP_200_OK, EResponseMessages.PASSWORD_RESET.value)
     except HTTPException as e:
         return raise_exception(e.status_code, e.detail)

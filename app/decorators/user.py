@@ -27,9 +27,9 @@ def UserDecorator(func: Callable):
             token = token.split("Bearer ")[-1]
             try:
                 payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                _id: str = payload.get("sub")
+                _id = payload.get("sub")
                 if _id is None:
-                    return raise_response(status.HTTP_404_NOT_FOUND, EErrorMessages.UNAUTHORIZED_USER.value)
+                     raise_response(status.HTTP_404_NOT_FOUND, EErrorMessages.UNAUTHORIZED_USER.value)
             except JWTError:
                 return raise_response(status.HTTP_401_UNAUTHORIZED, EErrorMessages.INVALID_TOKEN.value)
 
@@ -37,7 +37,9 @@ def UserDecorator(func: Callable):
             if user is None:
                 return raise_response(status.HTTP_404_NOT_FOUND, EErrorMessages.USER_NOT_EXISTS.value)
             user["_id"] = str(user["_id"])
-            user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
+            if "emailVerifiedAt" in user and user["emailVerifiedAt"]:
+                user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
+
             request.state.user = dict(user)
         else:
             return raise_response(status.HTTP_401_UNAUTHORIZED, EErrorMessages.UNAUTHORIZED_ACCESS.value)

@@ -29,7 +29,7 @@ class User(BaseModel):
     otp: Optional[int] = Field(None, alias="OTP")
     is_active: bool = Field(True, alias="isActive")
     providers: Optional[List[Provider]] = None
-    role: EUserRole = Field(EUserRole.USER, alias="role")
+    role: EUserRole = Field(default=EUserRole.USER, alias="role")
     deleted_at: Optional[datetime] = Field(None, alias="deletedAt")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")

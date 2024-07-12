@@ -68,8 +68,6 @@ class UserService:
         if user is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=EErrorMessages.USER_NOT_EXISTS)
         user["_id"] = str(user["_id"])
-        user["emailVerifiedAt"] = str(user["emailVerifiedAt"])
-        user["password"] = None
         return {"user": UserService.formatUser(user)}
 
     @staticmethod

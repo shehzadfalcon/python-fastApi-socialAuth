@@ -36,6 +36,7 @@ from datetime import datetime
 from modules.auth.schemas.link_account import LinkAccountDto
 import time
 from modules.user.user_service import UserService
+from modules.user.user_model import EUserRole
 
 # interface
 from interfaces.login import ILogin
@@ -72,6 +73,8 @@ class SocialAuthService:
         if not user:
             # Create a new user if not found
             user_data = {
+                "role": EUserRole.USER,
+                "isActive": True,
                 "fullName": full_name,
                 "email": email,
                 "providers": [{"providerId": provider_id, "provider": provider}],
@@ -87,7 +90,7 @@ class SocialAuthService:
             }
             token = AuthHelper.create_access_token(data=token_data)
 
-            return {"user": UserService.formatUser(updated_user), "token": token}
+            return {"user": UserService.formatUser(updated_user), "token":{"token":token}}
 
         else:
             # Check if the social provider exists for the user
@@ -122,7 +125,7 @@ class SocialAuthService:
             token_data = {"sub": str(user["_id"]), "email": user["email"]}
             token = AuthHelper.create_access_token(data=token_data)
 
-            return {"user": UserService.formatUser(user), "token": token}
+            return {"user": UserService.formatUser(user), "token":{"token":token}}
 
     @staticmethod
     async def link_account(link_account_dto: LinkAccountDto) -> ILogin:
@@ -169,4 +172,4 @@ class SocialAuthService:
         # Fetch the updated user data
         user = await user_collection.find_one({"_id": user["_id"]})
         user["_id"] = str(user["_id"])
-        return {"user": UserService.formatUser(user), "token": token}
+        return {"user": UserService.formatUser(user), "token":{"token":token}}

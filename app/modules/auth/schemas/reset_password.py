@@ -1,10 +1,12 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field,EmailStr, validator
 import re
 from typing import Optional
 
 
 class ResetPasswordSchema(BaseModel):
     otp: Optional[str] = None
+    email: Optional[EmailStr]=None
+
     password: str = Field(
         ...,
         min_length=8,

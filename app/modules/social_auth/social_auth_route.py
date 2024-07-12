@@ -44,8 +44,8 @@ from enums.steps import Steps
 from utils.raise_response import raise_response
 from utils.raise_exception import raise_exception
 from interfaces.response import IResponse
-
-
+import base64
+import json
 # Initialize APIRouter
 router = APIRouter()
 
@@ -101,17 +101,17 @@ async def auth_callback(request: Request):
             profile["id"],
             profile["provider"],
         )
-
         if payload and "token" in payload and "user" in payload:
-            token = payload["token"]
-            user_data = str(payload["user"])
+            token =base64.b64encode(json.dumps(payload["token"]).encode()).decode()
+            user= json.dumps(payload["user"])
+            user_data =base64.b64encode(user.encode()).decode()
             redirect_url = f"{os.getenv('FRONTEND_URL')}/login/google?token={token}&user={user_data}"
             return RedirectResponse(url=redirect_url)
 
         elif payload.get("nextStep") == Steps.ACCOUNT_LINKING.value:
-            provider_id = profile["id"]
-            provider = profile["provider"]
-            encoded_email = profile["email"]
+            provider_id =base64.b64encode(profile["id"].encode()).decode()
+            provider = base64.b64encode(profile["provider"].encode()).decode()
+            encoded_email = base64.b64encode(profile["email"].encode()).decode()
             redirect_url = f"{os.getenv('FRONTEND_URL')}/link-account?otp_token={encoded_email}&providerId={provider_id}&provider={provider}"
             return RedirectResponse(url=redirect_url)
         else:
@@ -137,7 +137,7 @@ async def link_account(link_account_dto: LinkAccountDto) -> IResponse:
     """
     try:
         payload = await SocialAuthService.link_account(link_account_dto)
-        raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value, payload)
+        return raise_response(status.HTTP_200_OK, EResponseMessages.OTP_VERIFIED.value, payload)
 
     except HTTPException as e:
         return raise_exception(e.status_code, e.detail)

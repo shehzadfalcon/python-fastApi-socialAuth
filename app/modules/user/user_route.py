@@ -50,7 +50,7 @@ async def get_profile(request: Request) -> IResponse:
     """
     try:
         user = request.state.user
-        payload = await UserService.formatUser(user)
+        payload = UserService.formatUser(user)
         return raise_response(status.HTTP_200_OK, EResponseMessages.PROFILE_FETCHED.value, payload)
     except HTTPException as e:
         return raise_exception(e.status_code, e.detail)
