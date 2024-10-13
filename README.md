@@ -1,4 +1,4 @@
-# FastAPI MongoDB Project
+# Python FastApi Auth Module Boilerplate
 
 This project is built using FastAPI with MongoDB for database operations. It provides various endpoints for user authentication, registration, password management, and email verification.
 
@@ -116,9 +116,20 @@ app/
     - Once the application is running, access the API documentation at `http://localhost:8000/docs`.
 
 ## Contributing
+We welcome contributions from anyone passionate about AI ethics, neuroethics, and web development! Here's how you can contribute:
 
-Contributions are welcome! If you find any issues or have suggestions, please open an issue or submit a pull request.
+Fork the repository and create your branch: git checkout -b my-feature-branch
+Commit your changes: git commit -m 'Add some feature'
+Push to the branch: git push origin my-feature-branch
+Open a pull request to the main branch for review
+Please review our Code of Conduct before contributing to ensure a positive and constructive environment for all contributors.
+
 
 ## License
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-This project is licensed under the [MIT License](LICENSE).
+## Contact
+If you have any questions, suggestions, or feedback, feel free to reach out to us:
+
+Project Maintainer: Shehzad Ahmed
+Email: shehzadfalcon@gmail.com
