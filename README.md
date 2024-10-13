@@ -118,9 +118,18 @@ app/
 ## Contributing
 We welcome contributions from anyone passionate about AI ethics, neuroethics, and web development! Here's how you can contribute:
 
-Fork the repository and create your branch: git checkout -b my-feature-branch
-Commit your changes: git commit -m 'Add some feature'
-Push to the branch: git push origin my-feature-branch
+Fork the repository and create your branch:
+```bash
+git checkout -b my-feature-branch
+```
+Commit your changes: 
+```bash
+git commit -m 'Add some feature'
+```
+Push to the branch: 
+```bash
+git push origin my-feature-branch
+```
 Open a pull request to the main branch for review
 Please review our Code of Conduct before contributing to ensure a positive and constructive environment for all contributors.
 
